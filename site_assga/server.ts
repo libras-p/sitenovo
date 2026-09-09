@@ -812,5 +812,5 @@ app.post('/api/assistente-libras', async (req: Request, res: Response) => {
 
 // Start Server binding to 0.0.0.0 and port 3000
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Portal ASSGA running on http://0.0.0.0:${PORT}`);
+  console.log("Portal ASSGA running on http://localhost:3000");
 });
