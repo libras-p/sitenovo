@@ -1,0 +1,115 @@
+<%- include('../layout/header') %>
+
+<div class="container py-3">
+    <!-- Header do Associado -->
+    <div class="card border-0 shadow-sm rounded-4 p-4 mb-4" style="background: linear-gradient(135deg, #003366 0%, #004aad 100%); color: white;">
+        <div class="d-flex flex-wrap align-items-center gap-4">
+            <img src="<%= associado.foto_url || '/imagens/avatar-padrao.jpg' %>" alt="<%= associado.nome %>" class="rounded-circle border border-4 border-warning shadow" style="width: 90px; height: 90px; object-fit: cover;">
+            <div class="flex-grow-1">
+                <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+                    <h3 class="fw-bold mb-0 text-white"><%= associado.nome %></h3>
+                    <span class="badge bg-warning text-dark fw-bold"><%= associado.categoria %></span>
+                    <span class="badge bg-success"><%= associado.status %></span>
+                </div>
+                <div class="text-light opacity-90 small">
+                    <span class="me-3"><i class="fa-solid fa-id-badge text-warning me-1"></i> Matrícula: <strong><%= associado.matricula %></strong></span>
+                    <span class="me-3"><i class="fa-solid fa-envelope text-warning me-1"></i> <%= associado.email %></span>
+                    <span><i class="fa-solid fa-phone text-warning me-1"></i> <%= associado.telefone %></span>
+                </div>
+            </div>
+            <div>
+                <a href="/carteirinha" class="btn btn-warning fw-bold px-3 py-2 shadow-sm">
+                    <i class="fa-solid fa-id-card me-2"></i> Minha Carteirinha
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Dados Cadastrais -->
+        <div class="col-lg-5">
+            <div class="card border-0 shadow-sm rounded-4 p-4 h-100">
+                <h5 class="fw-bold text-primary mb-3"><i class="fa-solid fa-user-gear me-2"></i>Dados Cadastrais</h5>
+                <ul class="list-group list-group-flush small">
+                    <li class="list-group-item d-flex justify-content-between px-0 py-2">
+                        <span class="text-muted">CPF</span>
+                        <span class="fw-semibold"><%= associado.cpf %></span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between px-0 py-2">
+                        <span class="text-muted">RG</span>
+                        <span class="fw-semibold"><%= associado.rg || "Não informado" %></span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between px-0 py-2">
+                        <span class="text-muted">Data de Nascimento</span>
+                        <span class="fw-semibold"><%= associado.data_nascimento.split('-').reverse().join('/') %></span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between px-0 py-2">
+                        <span class="text-muted">Identidade</span>
+                        <span class="fw-semibold text-primary"><%= associado.identidade_surda %></span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between px-0 py-2">
+                        <span class="text-muted">Cidade / Estado</span>
+                        <span class="fw-semibold"><%= associado.cidade %> - <%= associado.estado %></span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between px-0 py-2">
+                        <span class="text-muted">Data de Filiação</span>
+                        <span class="fw-semibold"><%= associado.data_filiacao.split('-').reverse().join('/') %></span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Histórico de Mensalidades -->
+        <div class="col-lg-7">
+            <div class="card border-0 shadow-sm rounded-4 p-4 h-100">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold text-primary mb-0"><i class="fa-solid fa-receipt me-2"></i>Mensalidades e Contribuições</h5>
+                    <a href="/pagamento" class="btn btn-sm btn-outline-success fw-bold">
+                        <i class="fa-brands fa-pix me-1"></i> Pagar Mensalidade
+                    </a>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle small mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Referência</th>
+                                <th>Valor</th>
+                                <th>Status</th>
+                                <th>Método</th>
+                                <th>Data Pagamento</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% if (mensalidades && mensalidades.length > 0) { %>
+                                <% mensalidades.forEach(function(m) { %>
+                                <tr>
+                                    <td class="fw-bold"><%= String(m.mes_referencia).padStart(2, '0') %>/<%= m.ano_referencia %></td>
+                                    <td>R$ <%= Number(m.valor).toFixed(2).replace('.', ',') %></td>
+                                    <td>
+                                        <% if (m.status === 'Pago') { %>
+                                        <span class="badge bg-success">Pago</span>
+                                        <% } else if (m.status === 'Pendente') { %>
+                                        <span class="badge bg-warning text-dark">Pendente</span>
+                                        <% } else { %>
+                                        <span class="badge bg-danger"><%= m.status %></span>
+                                        <% } %>
+                                    </td>
+                                    <td><%= m.metodo %></td>
+                                    <td><%= m.data_pagamento ? m.data_pagamento.split('-').reverse().join('/') : '-' %></td>
+                                </tr>
+                                <% }); %>
+                            <% } else { %>
+                                <tr>
+                                    <td colspan="5" class="text-center text-muted py-4">Nenhum registro de mensalidade encontrado.</td>
+                                </tr>
+                            <% } %>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<%- include('../layout/footer') %>

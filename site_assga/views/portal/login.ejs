@@ -1,0 +1,53 @@
+<%- include('../layout/header') %>
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-5">
+            <div class="card border-0 shadow-sm rounded-4 p-4 p-md-5">
+                <div class="text-center mb-4">
+                    <div class="bg-primary text-warning rounded-circle d-inline-flex align-items-center justify-content-center mb-3 shadow-sm" style="width: 64px; height: 64px;">
+                        <i class="fa-solid fa-user-shield fs-3"></i>
+                    </div>
+                    <h3 class="fw-bold text-primary mb-1">Área do Associado</h3>
+                    <p class="text-muted small">Digite sua Matrícula ou CPF cadastrado na ASSGA</p>
+                </div>
+
+                <% if (typeof error !== 'undefined' && error) { %>
+                <div class="alert alert-danger py-2 small" role="alert">
+                    <i class="fa-solid fa-triangle-exclamation me-1"></i> <%= error %>
+                </div>
+                <% } %>
+
+                <form method="post" action="/login">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small text-secondary">Matrícula ou CPF</label>
+                        <input type="text" name="identificador" class="form-control form-control-lg" placeholder="Ex: ASG-2024-001 ou 123.456.789-00" required autofocus>
+                    </div>
+
+                    <div class="mb-3 p-3 bg-light rounded-3 small">
+                        <span class="text-muted d-block fw-bold mb-1">Associados de Demonstração:</span>
+                        <div class="d-flex flex-wrap gap-1">
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="document.querySelector('input[name=identificador]').value='ASG-2024-001'">Carlos (ASG-2024-001)</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="document.querySelector('input[name=identificador]').value='ASG-2023-042'">Mariana (ASG-2023-042)</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="document.querySelector('input[name=identificador]').value='ASG-2024-089'">Lucas (ASG-2024-089)</button>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-warning btn-lg fw-bold w-100 py-3 mb-3 shadow-sm">
+                        <i class="fa-solid fa-arrow-right-to-bracket me-2"></i> Acessar Painel
+                    </button>
+                </form>
+
+                <div class="bg-light p-3 rounded-3 text-center small text-muted mt-3">
+                    Ainda não possui cadastro ou esqueceu sua matrícula?
+                    <br>
+                    <a href="https://wa.me/5584996981248" target="_blank" class="fw-bold text-primary text-decoration-none">
+                        <i class="fa-brands fa-whatsapp me-1"></i> Falar com a Secretaria da ASSGA
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<%- include('../layout/footer') %>

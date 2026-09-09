@@ -1,0 +1,42 @@
+<%- include('../layout/header') %>
+
+<div class="container py-3">
+    <div class="text-center mb-5">
+        <span class="badge bg-primary px-3 py-2 rounded-pill fw-bold text-uppercase">Calendário Oficial</span>
+        <h2 class="fw-bold text-primary mt-2">Eventos e Atividades</h2>
+        <p class="text-muted">Acompanhe torneios esportivos, encontros culturais e assembleias da ASSGA.</p>
+    </div>
+
+    <div class="row g-4">
+        <% eventos.forEach(function(evento) { %>
+        <div class="col-md-6 col-lg-4">
+            <div class="card h-100 border-0 shadow-sm rounded-4 overflow-hidden">
+                <% if (evento.imagem_url) { %>
+                <img src="<%= evento.imagem_url %>" class="card-img-top" alt="Imagem do evento <%= evento.titulo %>" style="height: 190px; object-fit: cover;">
+                <% } %>
+                <div class="card-body p-4 d-flex flex-column">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <span class="badge bg-primary"><%= evento.tipo %></span>
+                        <% if (evento.libras_disponivel) { %>
+                        <span class="badge bg-info text-dark"><i class="fa-solid fa-hands-asl-interpreting me-1"></i>LIBRAS</span>
+                        <% } %>
+                    </div>
+                    <h4 class="fw-bold text-dark mb-2"><%= evento.titulo %></h4>
+                    <p class="text-muted small mb-2">
+                        <i class="fa-solid fa-calendar text-primary me-2"></i>
+                        <%= new Date(evento.data_inicio).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) %>
+                    </p>
+                    <p class="text-muted small mb-3"><i class="fa-solid fa-location-dot text-danger me-2"></i><%= evento.local %></p>
+                    <p class="text-secondary small mb-4 flex-grow-1"><%= evento.descricao %></p>
+                    
+                    <a href="https://wa.me/5584996981248?text=Ol%C3%A1,%20gostaria%20de%20informa%C3%A7%C3%B5es%20sobre%20o%20evento%20<%= encodeURIComponent(evento.titulo) %>" target="_blank" class="btn btn-outline-primary btn-sm w-100 fw-semibold">
+                        <i class="fa-brands fa-whatsapp me-1"></i> Mais Informações / Inscrição
+                    </a>
+                </div>
+            </div>
+        </div>
+        <% }); %>
+    </div>
+</div>
+
+<%- include('../layout/footer') %>

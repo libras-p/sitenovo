@@ -1,0 +1,57 @@
+    </main>
+
+    <!-- Rodapé -->
+    <footer class="footer-assga pt-5 pb-3">
+        <div class="container">
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <h5 class="text-white fw-bold"><i class="fa-solid fa-handshake-angle text-danger me-2"></i>ASSGA</h5>
+                    <p class="small text-white-50">Associação dos Surdos de São Gonçalo do Amarante - RN. Fomentando o desporto, cidadania, acessibilidade em LIBRAS e inclusão social.</p>
+                    <div class="d-flex gap-3 fs-5 mt-3">
+                        <a href="https://www.instagram.com/assga_2019/" target="_blank" class="text-white"><i class="fa-brands fa-instagram"></i></a>
+                        <a href="https://www.youtube.com/@ASSGAESPORTES" target="_blank" class="text-white"><i class="fa-brands fa-youtube"></i></a>
+                        <a href="https://wa.me/5584996981248" target="_blank" class="text-white"><i class="fa-brands fa-whatsapp"></i></a>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <h6 class="text-white fw-bold">Atalhos do Portal</h6>
+                    <ul class="list-unstyled small">
+                        <li><a href="/estatuto" class="text-white-50 text-decoration-none">Estatuto Social</a></li>
+                        <li><a href="/diretoria" class="text-white-50 text-decoration-none">Diretoria Executiva</a></li>
+                        <li><a href="/carteirinha" class="text-white-50 text-decoration-none">Emissão de Carteirinha</a></li>
+                        <li><a href="/pagamento" class="text-white-50 text-decoration-none">Contribuição e Mensalidades PIX</a></li>
+                        <li><a href="/eventos" class="text-white-50 text-decoration-none">Calendário de Eventos</a></li>
+                        <li><a href="/admin" class="text-warning text-decoration-none fw-bold mt-1 d-inline-block"><i class="fa-solid fa-shield-halved me-1"></i> Painel Administrativo</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-4">
+                    <h6 class="text-white fw-bold">Contato Institucional</h6>
+                    <p class="small mb-1 text-white-50"><i class="fa-solid fa-envelope me-2 text-danger"></i> assgar2019@gmail.com</p>
+                    <p class="small mb-1 text-white-50"><i class="fa-solid fa-phone me-2 text-danger"></i> (84) 99698-1248</p>
+                    <p class="small mb-1 text-white-50"><i class="fa-solid fa-location-dot me-2 text-danger"></i> São Gonçalo do Amarante - RN</p>
+                    <p class="small text-white-50 mt-2">CNPJ: 57.242.499/0001-60</p>
+                </div>
+            </div>
+            <hr class="border-secondary my-4">
+            <div class="text-center small text-white-50">
+                © <%= new Date().getFullYear() %> ASSGA - Associação dos Surdos de São Gonçalo do Amarante. Todos os direitos reservados.
+            </div>
+        </div>
+    </footer>
+
+    <!-- VLibras Widget para Acessibilidade em LIBRAS -->
+    <div vw class="enabled">
+        <div vw-access-button class="active"></div>
+        <div vw-plugin-wrapper>
+            <div class="vw-plugin-top-wrapper"></div>
+        </div>
+    </div>
+    <script src="https://vlibras.gov.br/app/vlibras-plugin.js"></script>
+    <script>
+        new window.VLibras.Widget('https://vlibras.gov.br/app');
+    </script>
+
+    <!-- Bootstrap 5 Bundle JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

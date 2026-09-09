@@ -1,0 +1,40 @@
+<%- include('../layout/header') %>
+
+<div class="container py-3">
+    <div class="text-center mb-5">
+        <span class="badge bg-primary px-3 py-2 rounded-pill fw-bold text-uppercase">Gestão 2024-2028</span>
+        <h2 class="fw-bold text-primary mt-2">Diretoria Executiva e Conselho</h2>
+        <p class="text-muted">Lideranças comprometidas com a valorização e desenvolvimento da comunidade surda.</p>
+    </div>
+
+    <div class="row g-4 justify-content-center">
+        <% membros.forEach(function(membro) { %>
+        <div class="col-md-6 col-lg-4">
+            <div class="card h-100 border-0 shadow-sm rounded-4 overflow-hidden text-center">
+                <div class="bg-light py-4 border-bottom">
+                    <img src="<%= membro.foto_url %>" alt="<%= membro.nome %>" class="rounded-circle shadow-sm border border-3 border-warning" style="width: 130px; height: 130px; object-fit: cover;">
+                </div>
+                <div class="card-body p-4">
+                    <span class="badge bg-primary text-uppercase px-3 py-1 mb-2"><%= membro.cargo %></span>
+                    <h5 class="fw-bold text-dark mb-1"><%= membro.nome %></h5>
+                    <p class="small text-muted mb-3">Gestão: <%= membro.gestao %></p>
+                    <% if (membro.bio) { %>
+                    <p class="small text-secondary mb-3"><%= membro.bio %></p>
+                    <% } %>
+                    
+                    <div class="d-flex justify-content-center gap-2 pt-2 border-top">
+                        <% if (membro.email) { %>
+                        <a href="mailto:<%= membro.email %>" class="btn btn-sm btn-outline-primary rounded-circle" title="E-mail"><i class="fa-solid fa-envelope"></i></a>
+                        <% } %>
+                        <% if (membro.telefone) { %>
+                        <a href="https://wa.me/55<%= membro.telefone.replace(/\D/g, '') %>" target="_blank" class="btn btn-sm btn-outline-success rounded-circle" title="WhatsApp"><i class="fa-brands fa-whatsapp"></i></a>
+                        <% } %>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <% }); %>
+    </div>
+</div>
+
+<%- include('../layout/footer') %>

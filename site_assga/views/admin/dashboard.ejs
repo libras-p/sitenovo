@@ -1,0 +1,194 @@
+<%- include('../layout/header') %>
+
+<div class="container py-2">
+    <%- include('nav_tabs') %>
+
+    <!-- Cartões de Resumo Estatístico -->
+    <div class="row g-3 mb-4">
+        <div class="col-sm-6 col-lg-3">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="text-muted small fw-bold text-uppercase">Associados</span>
+                    <div class="bg-primary text-white rounded-circle p-2 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                        <i class="fa-solid fa-users"></i>
+                    </div>
+                </div>
+                <h3 class="fw-bold text-primary mb-1"><%= stats.totalSocios %></h3>
+                <div class="small text-muted">
+                    <span class="text-success fw-bold"><i class="fa-solid fa-circle-check me-1"></i><%= stats.sociosAtivos %> Ativos</span>
+                    <% if (stats.sociosPendentes > 0) { %>
+                    <span class="text-warning fw-bold ms-2"><i class="fa-solid fa-clock me-1"></i><%= stats.sociosPendentes %> Pendentes</span>
+                    <% } %>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-sm-6 col-lg-3">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="text-muted small fw-bold text-uppercase">Carteirinhas Ativas</span>
+                    <div class="bg-success text-white rounded-circle p-2 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                        <i class="fa-solid fa-id-card"></i>
+                    </div>
+                </div>
+                <h3 class="fw-bold text-success mb-1"><%= stats.carteirinhasAtivas %></h3>
+                <div class="small text-muted">Validação digital via QR Code oficial</div>
+            </div>
+        </div>
+
+        <div class="col-sm-6 col-lg-3">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="text-muted small fw-bold text-uppercase">Arrecadação Mensal</span>
+                    <div class="bg-warning text-dark rounded-circle p-2 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                        <i class="fa-solid fa-hand-holding-dollar"></i>
+                    </div>
+                </div>
+                <h3 class="fw-bold text-dark mb-1">R$ <%= Number(stats.totalArrecadado).toFixed(2).replace('.', ',') %></h3>
+                <div class="small text-muted">
+                    <span class="text-success fw-bold"><%= stats.mensalidadesPagas %> Pagas</span> | 
+                    <span class="text-danger fw-bold"><%= stats.mensalidadesPendentes %> Pendentes</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-sm-6 col-lg-3">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="text-muted small fw-bold text-uppercase">Eventos Programados</span>
+                    <div class="bg-info text-white rounded-circle p-2 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                        <i class="fa-solid fa-calendar-check"></i>
+                    </div>
+                </div>
+                <h3 class="fw-bold text-info mb-1"><%= stats.totalEventos %></h3>
+                <div class="small text-muted">Desporto e atividades da comunidade</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ações Rápidas -->
+    <div class="card border-0 shadow-sm rounded-4 p-4 mb-4 bg-white">
+        <h5 class="fw-bold text-primary mb-3"><i class="fa-solid fa-bolt me-2"></i>Ações Administrativas Rápidas</h5>
+        <div class="d-flex flex-wrap gap-2">
+            <a href="/admin/associados#novo" class="btn btn-primary fw-semibold rounded-pill px-3">
+                <i class="fa-solid fa-user-plus me-1"></i> Cadastrar Novo Associado
+            </a>
+            <a href="/admin/associados" class="btn btn-outline-primary fw-semibold rounded-pill px-3">
+                <i class="fa-solid fa-list-check me-1"></i> Gerenciar Lista de Sócios
+            </a>
+            <a href="/admin/mensalidades" class="btn btn-outline-success fw-semibold rounded-pill px-3">
+                <i class="fa-solid fa-file-invoice-dollar me-1"></i> Baixa de Mensalidades
+            </a>
+            <a href="/admin/carteirinhas" class="btn btn-outline-secondary fw-semibold rounded-pill px-3">
+                <i class="fa-solid fa-qrcode me-1"></i> Validador & Carteirinhas
+            </a>
+            <a href="/admin/eventos" class="btn btn-outline-dark fw-semibold rounded-pill px-3">
+                <i class="fa-solid fa-calendar-plus me-1"></i> Publicar Evento
+            </a>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Tabela Resumida de Associados Recentes -->
+        <div class="col-lg-7">
+            <div class="card border-0 shadow-sm rounded-4 p-4 bg-white h-100">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold text-primary mb-0"><i class="fa-solid fa-users me-2"></i>Últimos Associados</h5>
+                    <a href="/admin/associados" class="btn btn-sm btn-link text-decoration-none fw-bold">Ver todos (<%= stats.totalSocios %>) &rarr;</a>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle small mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Foto</th>
+                                <th>Matrícula / Nome</th>
+                                <th>Categoria</th>
+                                <th>Status</th>
+                                <th class="text-end">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% ultimosAssociados.forEach(function(s) { %>
+                            <tr>
+                                <td style="width: 45px;">
+                                    <img src="<%= s.foto_url || '/imagens/avatar-padrao.jpg' %>" alt="<%= s.nome %>" class="rounded-circle border" style="width: 38px; height: 38px; object-fit: cover;">
+                                </td>
+                                <td>
+                                    <span class="badge bg-light text-primary border font-monospace"><%= s.matricula %></span>
+                                    <div class="fw-bold text-dark"><%= s.nome %></div>
+                                    <div class="text-muted" style="font-size: 11px;"><%= s.cidade %> - <%= s.estado %></div>
+                                </td>
+                                <td>
+                                    <span class="badge bg-light text-secondary border"><%= s.categoria %></span>
+                                </td>
+                                <td>
+                                    <% if (s.status === 'Ativo') { %>
+                                    <span class="badge bg-success">Ativo</span>
+                                    <% } else if (s.status === 'Pendente') { %>
+                                    <span class="badge bg-warning text-dark">Pendente</span>
+                                    <% } else { %>
+                                    <span class="badge bg-danger"><%= s.status %></span>
+                                    <% } %>
+                                </td>
+                                <td class="text-end">
+                                    <a href="/carteirinha/<%= s.matricula %>" class="btn btn-sm btn-outline-primary rounded-circle" title="Ver Carteirinha">
+                                        <i class="fa-solid fa-id-card"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            <% }); %>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabela Resumida de Mensalidades Recentes -->
+        <div class="col-lg-5">
+            <div class="card border-0 shadow-sm rounded-4 p-4 bg-white h-100">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold text-primary mb-0"><i class="fa-solid fa-receipt me-2"></i>Últimas Mensalidades</h5>
+                    <a href="/admin/mensalidades" class="btn btn-sm btn-link text-decoration-none fw-bold">Ver todas &rarr;</a>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle small mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Sócio</th>
+                                <th>Ref.</th>
+                                <th>Valor</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% ultimasMensalidades.forEach(function(m) { %>
+                            <% const s = associadosMap[m.associado_id]; %>
+                            <tr>
+                                <td>
+                                    <div class="fw-bold text-dark text-truncate" style="max-width: 140px;"><%= s ? s.nome : 'Associado #' + m.associado_id %></div>
+                                    <span class="text-muted" style="font-size: 11px;"><%= m.metodo %></span>
+                                </td>
+                                <td class="font-monospace"><%= String(m.mes_referencia).padStart(2, '0') %>/<%= m.ano_referencia %></td>
+                                <td class="fw-bold text-primary">R$ <%= Number(m.valor).toFixed(2).replace('.', ',') %></td>
+                                <td>
+                                    <% if (m.status === 'Pago') { %>
+                                    <span class="badge bg-success">Pago</span>
+                                    <% } else if (m.status === 'Pendente') { %>
+                                    <span class="badge bg-warning text-dark">Pendente</span>
+                                    <% } else { %>
+                                    <span class="badge bg-danger"><%= m.status %></span>
+                                    <% } %>
+                                </td>
+                            </tr>
+                            <% }); %>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<%- include('../layout/footer') %>

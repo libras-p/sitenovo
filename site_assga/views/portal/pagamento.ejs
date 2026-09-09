@@ -1,0 +1,74 @@
+<%- include('../layout/header') %>
+
+<div class="container py-3">
+    <div class="row g-4 justify-content-center">
+        <div class="col-lg-7">
+            <div class="card border-0 shadow-sm rounded-4 p-4 p-md-5">
+                <span class="badge bg-success px-3 py-2 rounded-pill fw-bold text-uppercase d-inline-block mb-3 align-self-start">
+                    <i class="fa-brands fa-pix me-1"></i> Pagamento Instantâneo PIX
+                </span>
+                <h2 class="fw-bold text-primary mb-3">Mensalidade e Contribuições</h2>
+                <p class="text-secondary">Sua contribuição mensal fortalece as atividades esportivas, culturais e a defesa dos direitos da comunidade surda.</p>
+
+                <div class="bg-light p-4 rounded-4 border mb-4 text-center">
+                    <h6 class="text-muted text-uppercase small fw-bold mb-2">Chave Oficial PIX (E-mail)</h6>
+                    <div class="input-group input-group-lg mb-3">
+                        <input type="text" id="chavePix" class="form-control text-center fw-bold text-primary" value="Polyanabritoflamengobeatriz@gmail.com" readonly>
+                        <button class="btn btn-warning fw-bold px-3" onclick="navigator.clipboard.writeText('Polyanabritoflamengobeatriz@gmail.com'); alert('Chave PIX copiada com sucesso!');">
+                            <i class="fa-solid fa-copy me-1"></i> Copiar
+                        </button>
+                    </div>
+                    <div class="small text-muted">
+                        <div><strong>Favorecido:</strong> ASSGA - Associação de Surdos de São Gonçalo do Amarante</div>
+                        <div><strong>CNPJ:</strong> 57.242.499/0001-60</div>
+                        <div><strong>Valor da Mensalidade Padrão:</strong> R$ 25,00</div>
+                    </div>
+                </div>
+
+                <h5 class="fw-bold text-dark mb-3"><i class="fa-solid fa-upload me-2 text-primary"></i>Enviar Comprovante de Pagamento</h5>
+                <form method="post" action="/pagamento">
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Seu Nome Completo ou Matrícula</label>
+                        <input type="text" name="identificador" class="form-control" placeholder="Ex: Carlos Eduardo ou ASG-2024-001" required value="<%= user ? user.matricula : '' %>">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Mês de Referência</label>
+                        <select name="mes_referencia" class="form-select">
+                            <option value="9">Setembro / 2026</option>
+                            <option value="10">Outubro / 2026</option>
+                            <option value="11">Novembro / 2026</option>
+                            <option value="12">Dezembro / 2026</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Observações / Código da Transação PIX</label>
+                        <textarea name="observacoes" class="form-control" rows="2" placeholder="Cole o código do comprovante ou informações adicionais"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary fw-bold w-100 py-2">
+                        <i class="fa-solid fa-paper-plane me-2"></i> Registrar Comprovante
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div class="col-lg-5">
+            <div class="card border-0 shadow-sm rounded-4 p-4 text-center mb-4">
+                <h5 class="fw-bold text-primary mb-3"><i class="fa-solid fa-qrcode me-2"></i>QR Code PIX</h5>
+                <div class="bg-white p-3 rounded-3 d-inline-block border shadow-sm mx-auto mb-3">
+                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=Polyanabritoflamengobeatriz@gmail.com" alt="QR Code PIX" class="img-fluid" style="width: 180px; height: 180px;">
+                </div>
+                <p class="small text-muted mb-0">Abra o app do seu banco, escolha <strong>Pagar com PIX</strong> e aponte a câmera para o código acima.</p>
+            </div>
+
+            <div class="card border-0 bg-primary text-white p-4 rounded-4 shadow-sm">
+                <h6 class="fw-bold text-warning mb-2"><i class="fa-solid fa-circle-question me-2"></i>Dúvidas sobre o pagamento?</h6>
+                <p class="small text-light mb-3">Fale diretamente com o departamento financeiro da ASSGA via WhatsApp:</p>
+                <a href="https://wa.me/5584996981248" target="_blank" class="btn btn-success fw-bold w-100">
+                    <i class="fa-brands fa-whatsapp me-2"></i> Conversar com a Tesouraria
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<%- include('../layout/footer') %>

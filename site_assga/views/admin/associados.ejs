@@ -1,0 +1,318 @@
+<%- include('../layout/header') %>
+
+<div class="container py-2">
+    <%- include('nav_tabs') %>
+
+    <!-- Cabeçalho e Barra de Ferramentas -->
+    <div class="card border-0 shadow-sm rounded-4 p-4 mb-4 bg-white">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+            <div>
+                <h4 class="fw-bold text-primary mb-1"><i class="fa-solid fa-users-gear me-2"></i>Quadro de Associados da ASSGA</h4>
+                <p class="text-muted small mb-0">Total cadastrado: <strong><%= associados.length %> associados</strong></p>
+            </div>
+            <div>
+                <button type="button" class="btn btn-primary fw-bold rounded-pill px-4 shadow-sm" data-bs-toggle="modal" data-bs-target="#modalNovoAssociado">
+                    <i class="fa-solid fa-user-plus me-2"></i> Novo Associado
+                </button>
+            </div>
+        </div>
+
+        <hr class="my-3 opacity-25">
+
+        <!-- Filtros de Busca -->
+        <form method="get" action="/admin/associados" class="row g-2 align-items-center">
+            <div class="col-md-6 col-lg-5">
+                <div class="input-group">
+                    <span class="input-group-text bg-light border-end-0"><i class="fa-solid fa-search text-muted"></i></span>
+                    <input type="text" name="busca" class="form-control border-start-0" placeholder="Buscar por Nome, Matrícula ou CPF..." value="<%= busca || '' %>">
+                </div>
+            </div>
+            <div class="col-md-3 col-lg-3">
+                <select name="status" class="form-select">
+                    <option value="">Status: Todos</option>
+                    <option value="Ativo" <%= statusFiltro === 'Ativo' ? 'selected' : '' %>>Apenas Ativos</option>
+                    <option value="Pendente" <%= statusFiltro === 'Pendente' ? 'selected' : '' %>>Apenas Pendentes</option>
+                    <option value="Inativo" <%= statusFiltro === 'Inativo' ? 'selected' : '' %>>Apenas Inativos</option>
+                </select>
+            </div>
+            <div class="col-md-3 col-lg-2">
+                <select name="categoria" class="form-select">
+                    <option value="">Categoria: Todas</option>
+                    <option value="Sócio Atleta" <%= categoriaFiltro === 'Sócio Atleta' ? 'selected' : '' %>>Sócio Atleta</option>
+                    <option value="Sócio Efetivo" <%= categoriaFiltro === 'Sócio Efetivo' ? 'selected' : '' %>>Sócio Efetivo</option>
+                    <option value="Sócio Colaborador" <%= categoriaFiltro === 'Sócio Colaborador' ? 'selected' : '' %>>Sócio Colaborador</option>
+                </select>
+            </div>
+            <div class="col-12 col-lg-2 d-flex gap-2">
+                <button type="submit" class="btn btn-secondary w-100 fw-semibold">Filtrar</button>
+                <% if (busca || statusFiltro || categoriaFiltro) { %>
+                <a href="/admin/associados" class="btn btn-outline-secondary" title="Limpar Filtros"><i class="fa-solid fa-xmark"></i></a>
+                <% } %>
+            </div>
+        </form>
+    </div>
+
+    <!-- Lista de Associados em Tabela -->
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden bg-white mb-4">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-4">Foto</th>
+                        <th>Matrícula</th>
+                        <th>Nome Completo</th>
+                        <th>Identidade / Categoria</th>
+                        <th>Contatos</th>
+                        <th>Validade Carteirinha</th>
+                        <th>Status</th>
+                        <th class="text-end pe-4">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% if (associados && associados.length > 0) { %>
+                        <% associados.forEach(function(s) { %>
+                        <tr>
+                            <td class="ps-4" style="width: 50px;">
+                                <img src="<%= s.foto_url || '/imagens/avatar-padrao.jpg' %>" alt="<%= s.nome %>" class="rounded-circle border shadow-sm" style="width: 44px; height: 44px; object-fit: cover;">
+                            </td>
+                            <td>
+                                <span class="badge bg-light text-primary border font-monospace fs-6 px-2 py-1"><%= s.matricula %></span>
+                            </td>
+                            <td>
+                                <div class="fw-bold text-dark"><%= s.nome %></div>
+                                <div class="text-muted small">CPF: <%= s.cpf %> | RG: <%= s.rg || 'Não inf.' %></div>
+                            </td>
+                            <td>
+                                <span class="badge bg-primary-subtle text-primary border border-primary-subtle mb-1"><%= s.categoria %></span>
+                                <div class="small text-muted"><%= s.identidade_surda %></div>
+                            </td>
+                            <td>
+                                <div class="small"><i class="fa-solid fa-envelope text-muted me-1"></i><%= s.email %></div>
+                                <div class="small"><i class="fa-brands fa-whatsapp text-success me-1"></i><%= s.telefone %></div>
+                            </td>
+                            <td>
+                                <span class="badge bg-light text-dark border font-monospace">
+                                    <%= s.validade_carteirinha.split('-').reverse().join('/') %>
+                                </span>
+                            </td>
+                            <td>
+                                <form method="post" action="/admin/associados/<%= s.id %>/status" class="d-inline">
+                                    <input type="hidden" name="status" value="<%= s.status === 'Ativo' ? 'Pendente' : (s.status === 'Pendente' ? 'Inativo' : 'Ativo') %>">
+                                    <% if (s.status === 'Ativo') { %>
+                                    <button type="submit" class="btn btn-sm btn-success rounded-pill px-3 fw-bold" title="Clique para alterar status">
+                                        <i class="fa-solid fa-circle-check me-1"></i> Ativo
+                                    </button>
+                                    <% } else if (s.status === 'Pendente') { %>
+                                    <button type="submit" class="btn btn-sm btn-warning text-dark rounded-pill px-3 fw-bold" title="Clique para alterar status">
+                                        <i class="fa-solid fa-clock me-1"></i> Pendente
+                                    </button>
+                                    <% } else { %>
+                                    <button type="submit" class="btn btn-sm btn-danger rounded-pill px-3 fw-bold" title="Clique para alterar status">
+                                        <i class="fa-solid fa-ban me-1"></i> Inativo
+                                    </button>
+                                    <% } %>
+                                </form>
+                            </td>
+                            <td class="text-end pe-4">
+                                <div class="btn-group">
+                                    <a href="/carteirinha/<%= s.matricula %>" target="_blank" class="btn btn-sm btn-outline-primary" title="Ver e Imprimir Carteirinha">
+                                        <i class="fa-solid fa-id-card"></i>
+                                    </a>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalEditar<%= s.id %>" title="Editar Dados">
+                                        <i class="fa-solid fa-pen-to-square"></i>
+                                    </button>
+                                    <form method="post" action="/admin/associados/<%= s.id %>/excluir" class="d-inline" onsubmit="return confirm('Deseja realmente remover o associado <%= s.nome %>?');">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="Remover Associado">
+                                            <i class="fa-solid fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+
+                        <!-- Modal de Edição de Associado -->
+                        <div class="modal fade" id="modalEditar<%= s.id %>" tabindex="-1" aria-hidden="true">
+                            <div class="modal-dialog modal-lg modal-dialog-centered">
+                                <div class="modal-content border-0 shadow-lg rounded-4">
+                                    <div class="modal-header bg-primary text-white border-0 py-3">
+                                        <h5 class="modal-title fw-bold"><i class="fa-solid fa-user-pen me-2"></i>Editar Associado - <%= s.matricula %></h5>
+                                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                                    </div>
+                                    <form method="post" action="/admin/associados/<%= s.id %>/editar">
+                                        <div class="modal-body p-4">
+                                            <div class="row g-3">
+                                                <div class="col-md-8">
+                                                    <label class="form-label small fw-bold">Nome Completo</label>
+                                                    <input type="text" name="nome" class="form-control" value="<%= s.nome %>" required>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <label class="form-label small fw-bold">Status</label>
+                                                    <select name="status" class="form-select">
+                                                        <option value="Ativo" <%= s.status === 'Ativo' ? 'selected' : '' %>>Ativo</option>
+                                                        <option value="Pendente" <%= s.status === 'Pendente' ? 'selected' : '' %>>Pendente</option>
+                                                        <option value="Inativo" <%= s.status === 'Inativo' ? 'selected' : '' %>>Inativo</option>
+                                                    </select>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <label class="form-label small fw-bold">CPF</label>
+                                                    <input type="text" name="cpf" class="form-control" value="<%= s.cpf %>" required>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <label class="form-label small fw-bold">RG</label>
+                                                    <input type="text" name="rg" class="form-control" value="<%= s.rg %>">
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <label class="form-label small fw-bold">Data de Nascimento</label>
+                                                    <input type="date" name="data_nascimento" class="form-control" value="<%= s.data_nascimento %>">
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label class="form-label small fw-bold">E-mail</label>
+                                                    <input type="email" name="email" class="form-control" value="<%= s.email %>">
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label class="form-label small fw-bold">Telefone / WhatsApp</label>
+                                                    <input type="text" name="telefone" class="form-control" value="<%= s.telefone %>">
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <label class="form-label small fw-bold">Categoria</label>
+                                                    <select name="categoria" class="form-select">
+                                                        <option value="Sócio Atleta" <%= s.categoria === 'Sócio Atleta' ? 'selected' : '' %>>Sócio Atleta</option>
+                                                        <option value="Sócio Efetivo" <%= s.categoria === 'Sócio Efetivo' ? 'selected' : '' %>>Sócio Efetivo</option>
+                                                        <option value="Sócio Colaborador" <%= s.categoria === 'Sócio Colaborador' ? 'selected' : '' %>>Sócio Colaborador</option>
+                                                    </select>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <label class="form-label small fw-bold">Identidade Surda</label>
+                                                    <select name="identidade_surda" class="form-select">
+                                                        <option value="Surdo(a)" <%= s.identidade_surda === 'Surdo(a)' ? 'selected' : '' %>>Surdo(a)</option>
+                                                        <option value="Deficiência Auditiva" <%= s.identidade_surda === 'Deficiência Auditiva' ? 'selected' : '' %>>Deficiência Auditiva</option>
+                                                        <option value="Intérprete / Familiar ouvinte" <%= s.identidade_surda === 'Intérprete / Familiar ouvinte' ? 'selected' : '' %>>Intérprete / Familiar ouvinte</option>
+                                                    </select>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <label class="form-label small fw-bold">Validade Carteirinha</label>
+                                                    <input type="date" name="validade_carteirinha" class="form-control" value="<%= s.validade_carteirinha %>">
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label class="form-label small fw-bold">Cidade</label>
+                                                    <input type="text" name="cidade" class="form-control" value="<%= s.cidade %>">
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label class="form-label small fw-bold">URL da Foto</label>
+                                                    <input type="url" name="foto_url" class="form-control" value="<%= s.foto_url %>">
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer bg-light border-0 py-3">
+                                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                            <button type="submit" class="btn btn-primary fw-bold px-4"><i class="fa-solid fa-floppy-disk me-1"></i> Salvar Alterações</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        <% }); %>
+                    <% } else { %>
+                        <tr>
+                            <td colspan="8" class="text-center text-muted py-5">
+                                <i class="fa-solid fa-user-slash display-6 d-block mb-3 opacity-50"></i>
+                                Nenhum associado encontrado com os filtros selecionados.
+                            </td>
+                        </tr>
+                    <% } %>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Cadastrar Novo Associado -->
+<div class="modal fade" id="modalNovoAssociado" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header bg-primary text-white border-0 py-3">
+                <h5 class="modal-title fw-bold"><i class="fa-solid fa-user-plus me-2"></i>Cadastrar Novo Associado</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <form method="post" action="/admin/associados/novo">
+                <div class="modal-body p-4">
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label class="form-label small fw-bold">Nome Completo *</label>
+                            <input type="text" name="nome" class="form-control" placeholder="Nome do associado" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold">Categoria *</label>
+                            <select name="categoria" class="form-select" required>
+                                <option value="Sócio Atleta">Sócio Atleta</option>
+                                <option value="Sócio Efetivo">Sócio Efetivo</option>
+                                <option value="Sócio Colaborador">Sócio Colaborador</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold">CPF *</label>
+                            <input type="text" name="cpf" class="form-control" placeholder="000.000.000-00" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold">RG</label>
+                            <input type="text" name="rg" class="form-control" placeholder="Número do RG">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold">Data de Nascimento</label>
+                            <input type="date" name="data_nascimento" class="form-control" value="2000-01-01">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">E-mail</label>
+                            <input type="email" name="email" class="form-control" placeholder="email@exemplo.com">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Telefone / WhatsApp *</label>
+                            <input type="text" name="telefone" class="form-control" placeholder="(84) 99999-9999" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold">Identidade Surda</label>
+                            <select name="identidade_surda" class="form-select">
+                                <option value="Surdo(a)">Surdo(a)</option>
+                                <option value="Deficiência Auditiva">Deficiência Auditiva</option>
+                                <option value="Intérprete / Familiar ouvinte">Intérprete / Familiar ouvinte</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold">Tipo Sanguíneo</label>
+                            <select name="tipo_sanguineo" class="form-select">
+                                <option value="O+">O+</option>
+                                <option value="A+">A+</option>
+                                <option value="B+">B+</option>
+                                <option value="AB+">AB+</option>
+                                <option value="O-">O-</option>
+                                <option value="A-">A-</option>
+                                <option value="B-">B-</option>
+                                <option value="AB-">AB-</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold">Validade da Carteirinha</label>
+                            <input type="date" name="validade_carteirinha" class="form-control" value="2026-12-31">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Cidade</label>
+                            <input type="text" name="cidade" class="form-control" value="São Gonçalo do Amarante">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">URL da Foto (Opcional)</label>
+                            <input type="url" name="foto_url" class="form-control" placeholder="https://...">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light border-0 py-3">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary fw-bold px-4">
+                        <i class="fa-solid fa-check me-1"></i> Concluir Cadastro
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<%- include('../layout/footer') %>

@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title ? title : 'ASSGA - Associação dos Surdos de São Gonçalo do Amarante' %></title>
+    <meta name="description" content="Portal oficial da ASSGA: história, estatuto social, diretoria, departamento esportivo, eventos, carteirinha e área do associado.">
+    <link rel="icon" type="image/jpeg" href="/imagens/Assga_foto.jpg">
+    <link rel="apple-touch-icon" href="/imagens/Assga_foto.jpg">
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --assga-blue: #003366;
+            --assga-light-blue: #004aad;
+            --assga-red: #c62828;
+            --assga-white: #ffffff;
+            --bs-primary: #003366;
+            --bs-secondary: #004aad;
+            --bs-success: #004aad;
+            --bs-info: #004aad;
+            --bs-warning: #c62828;
+            --bs-danger: #c62828;
+            --bs-light: #ffffff;
+            --bs-dark: #001f3f;
+            --bs-body-color: #003366;
+            --bs-secondary-color: #004aad;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8fafc;
+            color: #0f172a;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .navbar-assga {
+            background: linear-gradient(135deg, #003366 0%, #004aad 100%);
+            box-shadow: 0 4px 18px rgba(0, 51, 102, 0.25);
+        }
+        .navbar-brand img {
+            max-height: 48px;
+            border-radius: 4px;
+        }
+        .nav-link {
+            color: rgba(255, 255, 255, 0.9) !important;
+            font-weight: 600;
+            padding: 8px 14px !important;
+            border-radius: 20px;
+            transition: all 0.2s;
+        }
+        .nav-link:hover, .nav-link.active {
+            color: #003366 !important;
+            background-color: var(--assga-white);
+        }
+        .btn-accent {
+            background-color: var(--assga-red);
+            color: var(--assga-white);
+            font-weight: 700;
+            border: none;
+        }
+        .btn-accent:hover {
+            background-color: #a61f1f;
+            color: var(--assga-white);
+        }
+        .footer-assga {
+            background-color: #001f3f;
+            color: var(--assga-white);
+            margin-top: auto;
+        }
+        .badge-libras {
+            background-color: var(--assga-red);
+            color: var(--assga-white);
+            font-size: 0.8rem;
+            padding: 4px 10px;
+            border-radius: 12px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navegação Principal -->
+    <nav class="navbar navbar-expand-lg navbar-dark navbar-assga sticky-top">
+        <div class="container">
+            <a class="navbar-brand d-flex align-items-center gap-2" href="/">
+                <img src="/imagens/Assga_foto.jpg" alt="Logo da ASSGA">
+                <span class="fw-bold text-white fs-3">ASSGA</span>
+                <span class="d-none d-md-inline text-white-50 fs-6 border-start ps-2">Portal dos Surdos</span>
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent" aria-controls="navbarContent" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="navbarContent">
+                <ul class="navbar-nav ms-auto mb-2 mb-lg-0 align-items-lg-center gap-1">
+                    <li class="nav-item">
+                        <a class="nav-link <%= activePage === 'home' ? 'active' : '' %>" href="/"><i class="fa-solid fa-house me-1"></i> Início</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link <%= activePage === 'historia' ? 'active' : '' %>" href="/historia"><i class="fa-solid fa-book-open me-1"></i> História</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link <%= activePage === 'estatuto' ? 'active' : '' %>" href="/estatuto"><i class="fa-solid fa-scale-balanced me-1"></i> Estatuto</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link <%= activePage === 'diretoria' ? 'active' : '' %>" href="/diretoria"><i class="fa-solid fa-users me-1"></i> Diretoria</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link <%= activePage === 'esportiva' ? 'active' : '' %>" href="/esportiva"><i class="fa-solid fa-futbol me-1"></i> Esportes</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link <%= activePage === 'evento' ? 'active' : '' %>" href="/eventos"><i class="fa-solid fa-calendar me-1"></i> Eventos</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link <%= activePage === 'pagamento' ? 'active' : '' %>" href="/pagamento"><i class="fa-solid fa-hand-holding-dollar me-1"></i> PIX</a>
+                    </li>
+
+                    <% if (user) { %>
+                    <li class="nav-item">
+                        <a class="nav-link <%= activePage === 'carteirinha' ? 'active' : '' %>" href="/carteirinha"><i class="fa-solid fa-id-card me-1"></i> Carteirinha</a>
+                    </li>
+                    <li class="nav-item ms-lg-2">
+                        <a class="btn btn-warning btn-sm fw-bold" href="/area-associado"><i class="fa-solid fa-user-check me-1"></i> <%= user.nome.split(' ')[0] %></a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-warning" href="/logout" title="Sair"><i class="fa-solid fa-arrow-right-from-bracket"></i></a>
+                    </li>
+                    <% } else { %>
+                    <li class="nav-item ms-lg-2">
+                        <a class="btn btn-outline-light btn-sm px-3 rounded-pill fw-bold" href="/login"><i class="fa-solid fa-right-to-bracket me-1"></i> Entrar</a>
+                    </li>
+                    <% } %>
+                    <li class="nav-item ms-lg-1">
+                        <a class="btn btn-danger btn-sm px-3 rounded-pill fw-bold text-white shadow-sm <%= activePage && activePage.startsWith('admin') ? 'ring-2' : '' %>" href="/admin" title="Painel Administrativo">
+                            <i class="fa-solid fa-shield-halved me-1"></i> Admin
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <% if (typeof messages !== 'undefined' && messages.length > 0) { %>
+    <div class="container mt-3">
+        <% messages.forEach(function(msg) { %>
+        <div class="alert alert-<%= msg.type || 'info' %> alert-dismissible fade show" role="alert">
+            <%= msg.text %>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        <% }); %>
+    </div>
+    <% } %>
+
+    <main class="flex-grow-1 py-4">

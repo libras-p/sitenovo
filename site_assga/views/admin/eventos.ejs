@@ -1,0 +1,129 @@
+<%- include('../layout/header') %>
+
+<div class="container py-2">
+    <%- include('nav_tabs') %>
+
+    <!-- Cabeçalho -->
+    <div class="card border-0 shadow-sm rounded-4 p-4 mb-4 bg-white">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+            <div>
+                <h4 class="fw-bold text-primary mb-1"><i class="fa-solid fa-calendar-check me-2"></i>Gestão de Eventos e Torneios</h4>
+                <p class="text-muted small mb-0">Gerencie assembleias, campeonatos de futsal e encontros da comunidade surda.</p>
+            </div>
+            <div>
+                <button type="button" class="btn btn-primary fw-bold rounded-pill px-4 shadow-sm" data-bs-toggle="modal" data-bs-target="#modalNovoEvento">
+                    <i class="fa-solid fa-calendar-plus me-1"></i> Publicar Novo Evento
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lista de Eventos -->
+    <div class="row g-4 mb-4">
+        <% if (eventos && eventos.length > 0) { %>
+            <% eventos.forEach(function(ev) { %>
+            <div class="col-md-6 col-lg-4">
+                <div class="card border-0 shadow-sm rounded-4 h-100 overflow-hidden bg-white">
+                    <% if (ev.imagem_url) { %>
+                    <img src="<%= ev.imagem_url %>" class="card-img-top" alt="<%= ev.titulo %>" style="height: 160px; object-fit: cover;">
+                    <% } %>
+                    <div class="card-body p-4 d-flex flex-column">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <span class="badge bg-primary"><%= ev.tipo %></span>
+                            <% if (ev.libras_disponivel) { %>
+                            <span class="badge bg-info text-dark"><i class="fa-solid fa-hands-asl-interpreting me-1"></i>LIBRAS</span>
+                            <% } %>
+                        </div>
+                        <h5 class="fw-bold text-dark mb-2"><%= ev.titulo %></h5>
+                        <p class="small text-muted mb-2">
+                            <i class="fa-solid fa-calendar text-primary me-2"></i>
+                            <%= new Date(ev.data_inicio).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) %>
+                        </p>
+                        <p class="small text-muted mb-3">
+                            <i class="fa-solid fa-location-dot text-danger me-2"></i><%= ev.local %>
+                        </p>
+                        <p class="small text-secondary flex-grow-1"><%= ev.descricao %></p>
+                        
+                        <div class="d-flex justify-content-between align-items-center pt-3 border-top mt-auto">
+                            <span class="badge <%= ev.ativo ? 'bg-success' : 'bg-secondary' %>"><%= ev.ativo ? 'Divulgado' : 'Inativo' %></span>
+                            <form method="post" action="/admin/eventos/<%= ev.id %>/excluir" class="d-inline" onsubmit="return confirm('Deseja realmente excluir este evento?');">
+                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Excluir Evento">
+                                    <i class="fa-solid fa-trash me-1"></i> Excluir
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <% }); %>
+        <% } else { %>
+            <div class="col-12">
+                <div class="card border-0 shadow-sm rounded-4 p-5 text-center bg-white text-muted">
+                    <i class="fa-solid fa-calendar-xmark display-4 mb-3 opacity-50"></i>
+                    <p class="mb-0">Nenhum evento programado no momento.</p>
+                </div>
+            </div>
+        <% } %>
+    </div>
+</div>
+
+<!-- Modal Novo Evento -->
+<div class="modal fade" id="modalNovoEvento" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header bg-primary text-white border-0 py-3">
+                <h5 class="modal-title fw-bold"><i class="fa-solid fa-calendar-plus me-2"></i>Publicar Novo Evento</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <form method="post" action="/admin/eventos/novo">
+                <div class="modal-body p-4">
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label class="form-label small fw-bold">Título do Evento *</label>
+                            <input type="text" name="titulo" class="form-control" placeholder="Ex: Torneio Integração de Futsal" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold">Tipo de Evento *</label>
+                            <select name="tipo" class="form-select" required>
+                                <option value="Esportivo">Esportivo</option>
+                                <option value="Cultural">Cultural</option>
+                                <option value="Assembleia">Assembleia</option>
+                                <option value="Comunitário">Comunitário</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Data e Horário de Início *</label>
+                            <input type="datetime-local" name="data_inicio" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Local *</label>
+                            <input type="text" name="local" class="form-control" placeholder="Ginásio ou sede" required>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-bold">Descrição Completa *</label>
+                            <textarea name="descricao" class="form-control" rows="3" placeholder="Detalhes do evento, inscrições, regulamento..." required></textarea>
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label small fw-bold">URL da Imagem de Capa (Opcional)</label>
+                            <input type="url" name="imagem_url" class="form-control" placeholder="https://...">
+                        </div>
+                        <div class="col-md-4 d-flex align-items-end">
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" name="libras_disponivel" id="checkLibras" checked>
+                                <label class="form-check-label small fw-bold" for="checkLibras">
+                                    Intérprete LIBRAS disponível
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light border-0 py-3">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary fw-bold px-4">Cadastrar Evento</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<%- include('../layout/footer') %>
