@@ -61,12 +61,10 @@
                     <tr>
                         <th class="ps-4">Associado</th>
                         <th>Matrícula</th>
-                        <th>Referência</th>
-                        <th>Valor</th>
-                        <th>Método</th>
-                        <th>Data Pagamento</th>
+                        <th>Categoria</th>
                         <th>Status</th>
-                        <th class="text-end pe-4">Alterar Status</th>
+                        <th class="text-end pe-4">Ações</th>
+                        <th>Valor</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -83,19 +81,8 @@
                             <td>
                                 <span class="badge bg-light text-primary border font-monospace"><%= assoc ? assoc.matricula : '-' %></span>
                             </td>
-                            <td class="font-monospace fw-bold">
-                                <%= String(m.mes_referencia).padStart(2, '0') %>/<%= m.ano_referencia %>
-                            </td>
-                            <td class="fw-bold text-primary">
-                                R$ <%= Number(m.valor).toFixed(2).replace('.', ',') %>
-                            </td>
                             <td>
-                                <span class="badge bg-light text-dark border">
-                                    <i class="fa-solid fa-money-bill-wave text-success me-1"></i> <%= m.metodo %>
-                                </span>
-                            </td>
-                            <td>
-                                <%= m.data_pagamento ? m.data_pagamento.split('-').reverse().join('/') : '-' %>
+                                <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-2"><%= assoc ? assoc.categoria : '-' %></span>
                             </td>
                             <td>
                                 <% if (m.status === 'Pago') { %>
@@ -110,16 +97,19 @@
                                 <form method="post" action="/admin/mensalidades/<%= m.id %>/status" class="d-inline">
                                     <% if (m.status === 'Pago') { %>
                                     <input type="hidden" name="novoStatus" value="Pendente">
-                                    <button type="submit" class="btn btn-sm btn-outline-warning text-dark fw-semibold" title="Marcar como Pendente">
+                                    <button type="submit" class="btn btn-sm btn-warning text-dark fw-semibold" title="Marcar como Pendente">
                                         <i class="fa-solid fa-rotate-left me-1"></i> Estornar
                                     </button>
                                     <% } else { %>
                                     <input type="hidden" name="novoStatus" value="Pago">
-                                    <button type="submit" class="btn btn-sm btn-success fw-bold px-3 shadow-sm" title="Confirmar Recebimento">
+                                    <button type="submit" class="btn btn-sm btn-success fw-bold px-3" title="Confirmar Recebimento">
                                         <i class="fa-solid fa-check me-1"></i> Dar Baixa
                                     </button>
                                     <% } %>
                                 </form>
+                            </td>
+                            <td class="fw-bold <%= m.status === 'Pago' ? 'text-success' : 'text-danger' %>">
+                                R$ <%= Number(m.valor).toFixed(2).replace('.', ',') %>
                             </td>
                         </tr>
                         <% }); %>

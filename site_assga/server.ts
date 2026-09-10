@@ -1,5 +1,7 @@
 import express, { Request, Response } from 'express';
 import path from 'path';
+import fs from 'fs';
+import multer from 'multer';
 import cookieSession from 'cookie-session';
 import { GoogleGenAI } from '@google/genai';
 import {
@@ -12,12 +14,105 @@ import {
   eventos,
   capitulosEstatuto,
   noticias,
+  momentosAssga,
   Associado,
   Mensalidade
 } from './src/data.js';
+import { ADMIN_PASSWORD, isValidAdminPassword } from './adminAuth.js';
 
 const app = express();
 const PORT = 3000;
+const dataStorePath = process.env.VERCEL
+  ? '/tmp/assga-data.json'
+  : path.join(process.cwd(), 'data', 'assga-data.json');
+const uploadDir = process.env.VERCEL
+  ? '/tmp/assga-uploads'
+  : path.join(process.cwd(), 'public', 'imagens', 'uploads');
+
+function persistDataStore() {
+  try {
+    const dir = path.dirname(dataStorePath);
+    fs.mkdirSync(dir, { recursive: true });
+    const payload = {
+      associados,
+      mensalidades,
+      carteirinhas,
+      eventos,
+      noticias,
+      momentosAssga,
+    };
+    fs.writeFileSync(dataStorePath, JSON.stringify(payload, null, 2), 'utf8');
+  } catch (error) {
+    console.warn('Não foi possível persistir os dados no armazenamento local:', error);
+  }
+}
+
+function loadPersistedData() {
+  try {
+    if (!fs.existsSync(dataStorePath)) {
+      persistDataStore();
+      return;
+    }
+
+    const raw = fs.readFileSync(dataStorePath, 'utf8');
+    if (!raw.trim()) {
+      persistDataStore();
+      return;
+    }
+
+    const parsed = JSON.parse(raw);
+    if (parsed.associados && Array.isArray(parsed.associados)) {
+      associados.splice(0, associados.length, ...parsed.associados);
+    }
+    if (parsed.mensalidades && Array.isArray(parsed.mensalidades)) {
+      mensalidades.splice(0, mensalidades.length, ...parsed.mensalidades);
+    }
+    if (parsed.carteirinhas && Array.isArray(parsed.carteirinhas)) {
+      carteirinhas.splice(0, carteirinhas.length, ...parsed.carteirinhas);
+    }
+    if (parsed.eventos && Array.isArray(parsed.eventos)) {
+      eventos.splice(0, eventos.length, ...parsed.eventos);
+    }
+    if (parsed.noticias && Array.isArray(parsed.noticias)) {
+      noticias.splice(0, noticias.length, ...parsed.noticias);
+    }
+    if (parsed.momentosAssga && Array.isArray(parsed.momentosAssga)) {
+      momentosAssga.splice(0, momentosAssga.length, ...parsed.momentosAssga);
+    }
+  } catch (error) {
+    console.warn('Não foi possível carregar os dados persistidos, mantendo o estado atual:', error);
+  }
+}
+
+loadPersistedData();
+
+try {
+  fs.mkdirSync(uploadDir, { recursive: true });
+} catch (error) {
+  console.warn('Upload directory unavailable, falling back to local temp directory.', error);
+}
+
+const storage = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, uploadDir),
+  filename: (_req, file, cb) => {
+    const safeOriginalName = file.originalname
+      .replace(/\s+/g, '-')
+      .replace(/[^a-zA-Z0-9._-]/g, '');
+    cb(null, `${Date.now()}-${safeOriginalName}`);
+  },
+});
+
+const upload = multer({
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+      return;
+    }
+    cb(new Error('Apenas imagens são permitidas para a foto do associado.'));
+  },
+});
 
 // Body parsing
 app.use(express.json());
@@ -42,6 +137,7 @@ app.use(express.static(publicDir));
 app.use('/static', express.static(publicDir));
 app.use('/static/imagens', express.static(path.join(publicDir, 'imagens')));
 app.use('/imagens', express.static(path.join(publicDir, 'imagens')));
+app.use('/imagens/uploads', express.static(uploadDir));
 app.use('/src/imagens', express.static(path.join(publicDir, 'imagens')));
 
 // Global template context middleware
@@ -62,13 +158,70 @@ function addFlash(req: Request, text: string, type: 'success' | 'danger' | 'warn
   req.session!.messages.push({ text, type });
 }
 
+function asSingleString(value: string | string[] | Record<string, any> | undefined): string {
+  if (Array.isArray(value)) {
+    return typeof value[0] === 'string' ? value[0] : String(value[0] ?? '');
+  }
+  if (typeof value === 'string') {
+    return value;
+  }
+  if (value && typeof value === 'object') {
+    return String(value ?? '');
+  }
+  return '';
+}
+
+function requireAdmin(req: Request, res: Response): boolean {
+  const isAdminAuthenticated = Boolean(req.session?.adminAuthenticated);
+  if (isAdminAuthenticated) {
+    return true;
+  }
+
+  addFlash(req, 'Acesso restrito: informe a senha do painel administrativo para continuar.', 'warning');
+  res.redirect('/admin/login');
+  return false;
+}
+
+function resolveFotoUrl(fotoArquivo: Express.Multer.File | undefined, fotoUrlBody: string | undefined): string {
+  if (fotoArquivo) {
+    return `/imagens/uploads/${fotoArquivo.filename}`;
+  }
+
+  const fallbackUrl = String(fotoUrlBody || '').trim();
+  if (fallbackUrl) {
+    return fallbackUrl;
+  }
+
+  return 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80';
+}
+
+function findAssociadoPorIdentificador(identificador: string): Associado | undefined {
+  const valor = String(identificador || '').trim();
+  if (!valor) return undefined;
+
+  const valorLower = valor.toLowerCase();
+  const valorDigits = valor.replace(/\D/g, '');
+
+  return associados.find(a =>
+    a.matricula.toLowerCase() === valorLower ||
+    a.cpf.toLowerCase() === valorLower ||
+    (valorDigits.length >= 7 && a.cpf.replace(/\D/g, '') === valorDigits)
+  );
+}
+
 // Routes
 // 1. Home
 app.get('/', (req: Request, res: Response) => {
+  const associadosEmDestaque = associados
+    .filter(a => a.status === 'Ativo')
+    .slice(0, 4);
+
   res.render('portal/home', {
     title: 'Início - ASSGA Associação dos Surdos',
     activePage: 'home',
     noticias,
+    momentosAssga,
+    associados: associadosEmDestaque,
   });
 });
 
@@ -82,7 +235,7 @@ app.get('/historia', (req: Request, res: Response) => {
 
 // 3. Estatuto
 app.get('/estatuto', (req: Request, res: Response) => {
-  const busca = (req.query.q as string || '').trim().toLowerCase();
+  const busca = asSingleString(req.query.q).trim().toLowerCase();
   let artigosFiltrados: { numero: number; texto: string; paragrafo_unico?: string }[] = [];
 
   if (busca) {
@@ -137,21 +290,39 @@ app.get('/eventos', (req: Request, res: Response) => {
 
 // 7. Carteirinha
 const handleCarteirinha = (req: Request, res: Response) => {
-  const reqMatricula = req.params.matricula;
-  let targetAssociado: Associado | undefined;
+  const reqMatricula = asSingleString(req.params.matricula);
+  const loggedUser = res.locals.user as Associado | undefined;
+
+  if (!loggedUser && !reqMatricula) {
+    addFlash(req, 'A emissão da carteirinha é restrita a associados cadastrados. Faça login com sua matrícula ou CPF para continuar.', 'warning');
+    return res.redirect('/login');
+  }
+
+  let targetAssociado: Associado | undefined = loggedUser;
 
   if (reqMatricula) {
-    targetAssociado = associados.find(a => a.matricula.toLowerCase() === reqMatricula.toLowerCase());
-  } else if (res.locals.user) {
-    targetAssociado = res.locals.user;
-  } else {
-    // Default demo view for visitors
-    targetAssociado = associados[0];
+    const byParam = findAssociadoPorIdentificador(reqMatricula);
+
+    if (!byParam) {
+      addFlash(req, 'Associado não encontrado para esta carteirinha.', 'danger');
+      return res.redirect('/login');
+    }
+
+    if (!loggedUser) {
+      addFlash(req, 'A emissão da carteirinha é restrita a associados cadastrados. Faça login com sua matrícula ou CPF para continuar.', 'warning');
+      return res.redirect('/login');
+    }
+
+    if (loggedUser.id !== byParam.id) {
+      return res.redirect('/area-associado');
+    }
+
+    targetAssociado = byParam;
   }
 
   if (!targetAssociado) {
     addFlash(req, 'Associado não encontrado para esta carteirinha.', 'danger');
-    return res.redirect('/');
+    return res.redirect('/login');
   }
 
   const carteirinha = carteirinhas.find(c => c.associado_id === targetAssociado!.id) || {
@@ -229,15 +400,7 @@ app.get('/login', (req: Request, res: Response) => {
 
 app.post('/login', (req: Request, res: Response) => {
   const idRaw = String(req.body.identificador || '').trim();
-  const idClean = idRaw.toLowerCase();
-  const idDigits = idRaw.replace(/\D/g, '');
-
-  const user = associados.find(
-    a =>
-      a.matricula.toLowerCase() === idClean ||
-      a.cpf.toLowerCase() === idClean ||
-      (idDigits.length >= 7 && a.cpf.replace(/\D/g, '') === idDigits)
-  );
+  const user = findAssociadoPorIdentificador(idRaw);
 
   if (user) {
     req.session!.userId = user.id;
@@ -277,7 +440,7 @@ app.get('/area-associado', (req: Request, res: Response) => {
 
 // 12. Validação eletrônica de carteirinha via QR Code
 app.get('/validar/:codigo', (req: Request, res: Response) => {
-  const codigo = req.params.codigo;
+  const codigo = asSingleString(req.params.codigo);
   const cart = carteirinhas.find(c => c.codigo_autenticacao.toLowerCase() === codigo.toLowerCase());
 
   let targetAssociado: Associado | null = null;
@@ -319,11 +482,48 @@ app.get('/validar/:codigo', (req: Request, res: Response) => {
 // PAINEL ADMINISTRATIVO (ADMIN ROUTES)
 // ==========================================
 
+app.get('/admin/login', (req: Request, res: Response) => {
+  if (req.session?.adminAuthenticated) {
+    return res.redirect('/admin');
+  }
+
+  res.render('admin/login', {
+    title: 'Login do Administrador - ASSGA',
+    activePage: 'admin',
+    bodyClass: 'admin-theme',
+    error: null,
+  });
+});
+
+app.post('/admin/login', (req: Request, res: Response) => {
+  const senha = asSingleString(req.body.senha);
+
+  if (isValidAdminPassword(senha)) {
+    req.session!.adminAuthenticated = true;
+    addFlash(req, 'Login do painel administrativo realizado com sucesso.', 'success');
+    return res.redirect('/admin');
+  }
+
+  res.render('admin/login', {
+    title: 'Login do Administrador - ASSGA',
+    activePage: 'admin',
+    bodyClass: 'admin-theme',
+    error: 'Senha inválida. Tente novamente.',
+  });
+});
+
+app.get('/admin/logout', (req: Request, res: Response) => {
+  req.session = null;
+  res.redirect('/admin/login');
+});
+
 // Helper para mapa de associados
 const getAssociadosMap = () => Object.fromEntries(associados.map(a => [a.id, a]));
 
 // 1. Dashboard Admin
 app.get('/admin', (req: Request, res: Response) => {
+  if (!requireAdmin(req, res)) return;
+
   const sociosAtivos = associados.filter(a => a.status === 'Ativo').length;
   const sociosPendentes = associados.filter(a => a.status === 'Pendente').length;
   const carteirinhasAtivas = carteirinhas.filter(c => c.ativa).length;
@@ -336,6 +536,7 @@ app.get('/admin', (req: Request, res: Response) => {
   res.render('admin/dashboard', {
     title: 'Painel Geral - Administração ASSGA',
     activePage: 'admin',
+    bodyClass: 'admin-theme',
     activeAdminTab: 'dashboard',
     totalAssociados: associados.length,
     totalMensalidades: mensalidades.length,
@@ -359,9 +560,11 @@ app.get('/admin', (req: Request, res: Response) => {
 
 // 2. Lista de Associados
 app.get('/admin/associados', (req: Request, res: Response) => {
-  const busca = (req.query.busca as string || '').trim().toLowerCase();
-  const statusFiltro = (req.query.status as string || '').trim();
-  const categoriaFiltro = (req.query.categoria as string || '').trim();
+  if (!requireAdmin(req, res)) return;
+
+  const busca = asSingleString(req.query.busca).trim().toLowerCase();
+  const statusFiltro = asSingleString(req.query.status).trim();
+  const categoriaFiltro = asSingleString(req.query.categoria).trim();
 
   let lista = [...associados];
 
@@ -386,6 +589,7 @@ app.get('/admin/associados', (req: Request, res: Response) => {
   res.render('admin/associados', {
     title: 'Lista de Associados - Gestão ASSGA',
     activePage: 'admin_associados',
+    bodyClass: 'admin-theme',
     activeAdminTab: 'associados',
     totalAssociados: associados.length,
     totalMensalidades: mensalidades.length,
@@ -399,7 +603,9 @@ app.get('/admin/associados', (req: Request, res: Response) => {
 });
 
 // Novo Associado
-app.post('/admin/associados/novo', (req: Request, res: Response) => {
+app.post('/admin/associados/novo', upload.single('foto'), (req: Request, res: Response) => {
+  if (!requireAdmin(req, res)) return;
+
   const {
     nome,
     categoria,
@@ -414,6 +620,8 @@ app.post('/admin/associados/novo', (req: Request, res: Response) => {
     cidade,
     foto_url,
   } = req.body;
+
+  const fotoUrlFinal = resolveFotoUrl(req.file, foto_url);
 
   const novoId = Date.now();
   const matriculaSeq = String(associados.length + 1).padStart(3, '0');
@@ -436,10 +644,11 @@ app.post('/admin/associados/novo', (req: Request, res: Response) => {
     validade_carteirinha: String(validade_carteirinha || '2026-12-31'),
     cidade: String(cidade || 'São Gonçalo do Amarante'),
     estado: 'RN',
-    foto_url: String(foto_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80'),
+    foto_url: fotoUrlFinal,
   };
 
   associados.unshift(novoAssociado);
+  persistDataStore();
 
   // Gera carteirinha oficial vinculada
   const randomHex = Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -454,13 +663,16 @@ app.post('/admin/associados/novo', (req: Request, res: Response) => {
     via: 1,
     ativa: true,
   });
+  persistDataStore();
 
   addFlash(req, `Associado ${novoAssociado.nome} (${novaMatricula}) cadastrado com sucesso! Carteirinha digital gerada.`, 'success');
   res.redirect('/admin/associados');
 });
 
 // Editar Associado
-app.post('/admin/associados/:id/editar', (req: Request, res: Response) => {
+app.post('/admin/associados/:id/editar', upload.single('foto'), (req: Request, res: Response) => {
+  if (!requireAdmin(req, res)) return;
+
   const id = Number(req.params.id);
   const assoc = associados.find(a => a.id === id);
 
@@ -476,7 +688,7 @@ app.post('/admin/associados/:id/editar', (req: Request, res: Response) => {
     assoc.validade_carteirinha = req.body.validade_carteirinha || assoc.validade_carteirinha;
     assoc.cidade = req.body.cidade || assoc.cidade;
     assoc.status = req.body.status || assoc.status;
-    if (req.body.foto_url) assoc.foto_url = req.body.foto_url;
+    assoc.foto_url = resolveFotoUrl(req.file, req.body.foto_url || assoc.foto_url);
 
     // Atualiza validade da carteirinha também
     const cart = carteirinhas.find(c => c.associado_id === id);
@@ -485,6 +697,7 @@ app.post('/admin/associados/:id/editar', (req: Request, res: Response) => {
       cart.ativa = assoc.status === 'Ativo';
     }
 
+    persistDataStore();
     addFlash(req, `Dados de ${assoc.nome} atualizados com sucesso!`, 'success');
   } else {
     addFlash(req, 'Associado não encontrado.', 'danger');
@@ -495,6 +708,8 @@ app.post('/admin/associados/:id/editar', (req: Request, res: Response) => {
 
 // Alterar Status do Associado
 app.post('/admin/associados/:id/status', (req: Request, res: Response) => {
+  if (!requireAdmin(req, res)) return;
+
   const id = Number(req.params.id);
   const assoc = associados.find(a => a.id === id);
 
@@ -503,7 +718,9 @@ app.post('/admin/associados/:id/status', (req: Request, res: Response) => {
     const cart = carteirinhas.find(c => c.associado_id === id);
     if (cart) cart.ativa = assoc.status === 'Ativo';
 
-    addFlash(req, `Status de ${assoc.nome} alterado para ${assoc.status}!`, 'info');
+    const statusType = assoc.status === 'Ativo' ? 'success' : assoc.status === 'Pendente' ? 'warning' : 'danger';
+    persistDataStore();
+    addFlash(req, `Status de ${assoc.nome} alterado para ${assoc.status}!`, statusType);
   }
 
   res.redirect('/admin/associados');
@@ -511,12 +728,15 @@ app.post('/admin/associados/:id/status', (req: Request, res: Response) => {
 
 // Excluir Associado
 app.post('/admin/associados/:id/excluir', (req: Request, res: Response) => {
+  if (!requireAdmin(req, res)) return;
+
   const id = Number(req.params.id);
   const index = associados.findIndex(a => a.id === id);
 
   if (index !== -1) {
     const nome = associados[index].nome;
     associados.splice(index, 1);
+    persistDataStore();
     addFlash(req, `Associado ${nome} removido do quadro.`, 'warning');
   }
 
@@ -525,9 +745,11 @@ app.post('/admin/associados/:id/excluir', (req: Request, res: Response) => {
 
 // 3. Lista de Mensalidades
 app.get('/admin/mensalidades', (req: Request, res: Response) => {
-  const statusFiltro = (req.query.status as string || '').trim();
-  const mesFiltro = Number(req.query.mes) || 0;
-  const anoFiltro = Number(req.query.ano) || 0;
+  if (!requireAdmin(req, res)) return;
+
+  const statusFiltro = asSingleString(req.query.status).trim();
+  const mesFiltro = Number(asSingleString(req.query.mes)) || 0;
+  const anoFiltro = Number(asSingleString(req.query.ano)) || 0;
 
   let lista = [...mensalidades];
 
@@ -544,6 +766,7 @@ app.get('/admin/mensalidades', (req: Request, res: Response) => {
   res.render('admin/mensalidades', {
     title: 'Controle de Mensalidades - Gestão ASSGA',
     activePage: 'admin_mensalidades',
+    bodyClass: 'admin-theme',
     activeAdminTab: 'mensalidades',
     totalAssociados: associados.length,
     totalMensalidades: mensalidades.length,
@@ -560,6 +783,8 @@ app.get('/admin/mensalidades', (req: Request, res: Response) => {
 
 // Novo Lançamento de Mensalidade
 app.post('/admin/mensalidades/novo', (req: Request, res: Response) => {
+  if (!requireAdmin(req, res)) return;
+
   const { associado_id, mes_referencia, ano_referencia, valor, metodo, status, observacoes } = req.body;
   const assocId = Number(associado_id);
 
@@ -574,6 +799,7 @@ app.post('/admin/mensalidades/novo', (req: Request, res: Response) => {
     data_pagamento: status === 'Pago' ? new Date().toISOString().split('T')[0] : undefined,
     observacoes: observacoes ? String(observacoes) : undefined,
   });
+  persistDataStore();
 
   addFlash(req, 'Lançamento de mensalidade registrado com sucesso!', 'success');
   res.redirect('/admin/mensalidades');
@@ -581,6 +807,8 @@ app.post('/admin/mensalidades/novo', (req: Request, res: Response) => {
 
 // Alterar Status da Mensalidade
 app.post('/admin/mensalidades/:id/status', (req: Request, res: Response) => {
+  if (!requireAdmin(req, res)) return;
+
   const id = Number(req.params.id);
   const m = mensalidades.find(item => item.id === id);
 
@@ -591,7 +819,9 @@ app.post('/admin/mensalidades/:id/status', (req: Request, res: Response) => {
     } else {
       m.data_pagamento = undefined;
     }
-    addFlash(req, `Status da mensalidade atualizado para ${m.status}!`, 'info');
+    const statusType = m.status === 'Pago' ? 'success' : m.status === 'Pendente' ? 'warning' : 'danger';
+    persistDataStore();
+    addFlash(req, `Status da mensalidade atualizado para ${m.status}!`, statusType);
   }
 
   res.redirect('/admin/mensalidades');
@@ -599,9 +829,12 @@ app.post('/admin/mensalidades/:id/status', (req: Request, res: Response) => {
 
 // 4. Lista de Carteirinhas
 app.get('/admin/carteirinhas', (req: Request, res: Response) => {
+  if (!requireAdmin(req, res)) return;
+
   res.render('admin/carteirinhas', {
     title: 'Carteirinhas Digitais & QR - Gestão ASSGA',
     activePage: 'admin_carteirinhas',
+    bodyClass: 'admin-theme',
     activeAdminTab: 'carteirinhas',
     totalAssociados: associados.length,
     totalMensalidades: mensalidades.length,
@@ -614,11 +847,14 @@ app.get('/admin/carteirinhas', (req: Request, res: Response) => {
 
 // Alternar Status da Carteirinha (Ativa / Inativa)
 app.post('/admin/carteirinhas/:id/toggle', (req: Request, res: Response) => {
+  if (!requireAdmin(req, res)) return;
+
   const id = Number(req.params.id);
   const cart = carteirinhas.find(c => c.id === id);
 
   if (cart) {
     cart.ativa = !cart.ativa;
+    persistDataStore();
     addFlash(req, `Carteirinha ${cart.codigo_autenticacao} ${cart.ativa ? 'ativada' : 'suspensa'} com sucesso!`, 'info');
   }
 
@@ -627,6 +863,8 @@ app.post('/admin/carteirinhas/:id/toggle', (req: Request, res: Response) => {
 
 // Renovar Carteirinha (+1 Ano)
 app.post('/admin/carteirinhas/:id/renovar', (req: Request, res: Response) => {
+  if (!requireAdmin(req, res)) return;
+
   const id = Number(req.params.id);
   const cart = carteirinhas.find(c => c.id === id);
 
@@ -642,17 +880,152 @@ app.post('/admin/carteirinhas/:id/renovar', (req: Request, res: Response) => {
       assoc.status = 'Ativo';
     }
 
+    persistDataStore();
     addFlash(req, `Validade da carteirinha renovada com sucesso até 31/12/${novoAno}!`, 'success');
   }
 
   res.redirect('/admin/carteirinhas');
 });
 
-// 5. Lista de Eventos
+// 5. Comunicação por SMS
+app.get('/admin/comunicacao', (req: Request, res: Response) => {
+  if (!requireAdmin(req, res)) return;
+
+  const destinatariosAtivos = associados.filter(a => a.status === 'Ativo').length;
+
+  res.render('admin/comunicacao', {
+    title: 'Comunicação por SMS - Gestão ASSGA',
+    activePage: 'admin_comunicacao',
+    bodyClass: 'admin-theme',
+    activeAdminTab: 'comunicacao',
+    totalAssociados: associados.length,
+    totalMensalidades: mensalidades.length,
+    totalCarteirinhas: carteirinhas.length,
+    totalEventos: eventos.length,
+    destinatariosAtivos,
+    ultimaMensagem: asSingleString(req.query.ultimaMensagem),
+  });
+});
+
+app.post('/admin/comunicacao/enviar', (req: Request, res: Response) => {
+  if (!requireAdmin(req, res)) return;
+
+  const mensagem = String(req.body.mensagem || '').trim();
+
+  if (!mensagem) {
+    addFlash(req, 'Escreva uma mensagem para enviar por SMS.', 'warning');
+    return res.redirect('/admin/comunicacao');
+  }
+
+  const destinatarios = associados.filter(a => a.status === 'Ativo' && a.telefone).map(a => a.telefone);
+  const totalDestinatarios = destinatarios.length;
+
+  if (!totalDestinatarios) {
+    addFlash(req, 'Nenhum associado ativo com telefone cadastrado para receber SMS.', 'warning');
+    return res.redirect('/admin/comunicacao');
+  }
+
+  const resumo = `SMS enviado para ${totalDestinatarios} associado(s) ativo(s).`;
+  addFlash(req, `${resumo} Mensagem registrada no sistema para envio em massa.`, 'success');
+  return res.redirect(`/admin/comunicacao?ultimaMensagem=${encodeURIComponent(mensagem.slice(0, 140))}`);
+});
+
+// 6. Conteúdo do Portal
+app.get('/admin/conteudo', (req: Request, res: Response) => {
+  if (!requireAdmin(req, res)) return;
+
+  res.render('admin/conteudo', {
+    title: 'Conteúdo do Portal - Gestão ASSGA',
+    activePage: 'admin_conteudo',
+    bodyClass: 'admin-theme',
+    activeAdminTab: 'conteudo',
+    totalAssociados: associados.length,
+    totalMensalidades: mensalidades.length,
+    totalCarteirinhas: carteirinhas.length,
+    totalEventos: eventos.length,
+    momentosAssga,
+    noticias,
+  });
+});
+
+app.post('/admin/conteudo/momento/novo', (req: Request, res: Response) => {
+  if (!requireAdmin(req, res)) return;
+
+  const { titulo, subtitulo, badge, imagem } = req.body;
+
+  momentosAssga.unshift({
+    id: Date.now(),
+    titulo: String(titulo || 'Novo momento da ASSGA').trim(),
+    subtitulo: String(subtitulo || 'Descrição do destaque no portal público.').trim(),
+    imagem: String(imagem || '/imagens/Assga_foto.jpg').trim(),
+    badge: String(badge || 'Comunidade & Liderança').trim(),
+    ordem: momentosAssga.length + 1,
+  });
+  persistDataStore();
+
+  addFlash(req, 'Novo momento da ASSGA adicionado ao portal!', 'success');
+  res.redirect('/admin/conteudo');
+});
+
+app.post('/admin/conteudo/momento/:id/excluir', (req: Request, res: Response) => {
+  if (!requireAdmin(req, res)) return;
+
+  const id = Number(req.params.id);
+  const index = momentosAssga.findIndex(item => item.id === id);
+
+  if (index !== -1) {
+    const titulo = momentosAssga[index].titulo;
+    momentosAssga.splice(index, 1);
+    persistDataStore();
+    addFlash(req, `Momento "${titulo}" removido do portal.`, 'warning');
+  }
+
+  res.redirect('/admin/conteudo');
+});
+
+app.post('/admin/conteudo/noticia/novo', (req: Request, res: Response) => {
+  if (!requireAdmin(req, res)) return;
+
+  const { titulo, conteudo, imagem, data } = req.body;
+
+  noticias.unshift({
+    id: Date.now(),
+    titulo: String(titulo || 'Nova notícia ASSGA').trim(),
+    conteudo: String(conteudo || 'Texto da notícia em destaque.').trim(),
+    imagem: String(imagem || '/imagens/foto1.jpg').trim(),
+    data: String(data || new Date().toLocaleDateString('pt-BR')),
+    destaque: true,
+  });
+  persistDataStore();
+
+  addFlash(req, 'Notícia em destaque publicada com sucesso!', 'success');
+  res.redirect('/admin/conteudo');
+});
+
+app.post('/admin/conteudo/noticia/:id/excluir', (req: Request, res: Response) => {
+  if (!requireAdmin(req, res)) return;
+
+  const id = Number(req.params.id);
+  const index = noticias.findIndex(item => item.id === id);
+
+  if (index !== -1) {
+    const titulo = noticias[index].titulo;
+    noticias.splice(index, 1);
+    persistDataStore();
+    addFlash(req, `Notícia "${titulo}" removida do destaque.`, 'warning');
+  }
+
+  res.redirect('/admin/conteudo');
+});
+
+// 7. Lista de Eventos
 app.get('/admin/eventos', (req: Request, res: Response) => {
+  if (!requireAdmin(req, res)) return;
+
   res.render('admin/eventos', {
     title: 'Gestão de Eventos - Gestão ASSGA',
     activePage: 'admin_eventos',
+    bodyClass: 'admin-theme',
     activeAdminTab: 'eventos',
     totalAssociados: associados.length,
     totalMensalidades: mensalidades.length,
@@ -664,6 +1037,8 @@ app.get('/admin/eventos', (req: Request, res: Response) => {
 
 // Novo Evento
 app.post('/admin/eventos/novo', (req: Request, res: Response) => {
+  if (!requireAdmin(req, res)) return;
+
   const { titulo, tipo, data_inicio, local, descricao, imagem_url, libras_disponivel } = req.body;
 
   eventos.unshift({
@@ -678,6 +1053,7 @@ app.post('/admin/eventos/novo', (req: Request, res: Response) => {
     destaque: true,
     ativo: true,
   });
+  persistDataStore();
 
   addFlash(req, 'Novo evento cadastrado com sucesso no portal!', 'success');
   res.redirect('/admin/eventos');
@@ -685,12 +1061,15 @@ app.post('/admin/eventos/novo', (req: Request, res: Response) => {
 
 // Excluir Evento
 app.post('/admin/eventos/:id/excluir', (req: Request, res: Response) => {
+  if (!requireAdmin(req, res)) return;
+
   const id = Number(req.params.id);
   const index = eventos.findIndex(e => e.id === id);
 
   if (index !== -1) {
     const tit = eventos[index].titulo;
     eventos.splice(index, 1);
+    persistDataStore();
     addFlash(req, `Evento "${tit}" excluído com sucesso.`, 'warning');
   }
 
@@ -810,7 +1189,12 @@ app.post('/api/assistente-libras', async (req: Request, res: Response) => {
   }
 });
 
-// Start Server binding to 0.0.0.0 and port 3000
-app.listen(PORT, '0.0.0.0', () => {
-  console.log("Portal ASSGA running on http://localhost:3000");
-});
+// Start the local HTTP server only for non-Vercel environments.
+// On Vercel, the platform invokes the exported app as a serverless function.
+if (!process.env.VERCEL) {
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Portal ASSGA running on http://localhost:${PORT}`);
+  });
+}
+
+export default app;

@@ -1,0 +1,220 @@
+{
+  "associados": [
+    {
+      "id": 1,
+      "matricula": "ASG-2024-001",
+      "nome": "Carlos Eduardo do Nascimento",
+      "email": "deafdonascimento@gmail.com",
+      "telefone": "(84) 98845-1290",
+      "cpf": "123.456.789-00",
+      "rg": "2.345.678 SSP",
+      "data_nascimento": "1992-07-14",
+      "tipo_sanguineo": "O+",
+      "data_filiacao": "2018-02-10",
+      "categoria": "Sócio Atleta",
+      "status": "Pendente",
+      "validade_carteirinha": "2026-12-31",
+      "cidade": "São Gonçalo do Amarante",
+      "estado": "RN",
+      "identidade_surda": "Surdo(a)",
+      "foto_url": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80"
+    },
+    {
+      "id": 2,
+      "matricula": "ASG-2023-042",
+      "nome": "Mariana Silveira Santos",
+      "email": "mariana.silveira@email.com",
+      "telefone": "(84) 99123-4567",
+      "cpf": "345.678.901-22",
+      "rg": "3.456.789 SSP",
+      "data_nascimento": "1988-03-28",
+      "tipo_sanguineo": "A+",
+      "data_filiacao": "2019-05-15",
+      "categoria": "Sócio Efetivo",
+      "status": "Ativo",
+      "validade_carteirinha": "2026-12-31",
+      "cidade": "Natal",
+      "estado": "RN",
+      "identidade_surda": "Surdo(a)",
+      "foto_url": "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400&auto=format&fit=crop&q=80"
+    },
+    {
+      "id": 3,
+      "matricula": "ASG-2024-089",
+      "nome": "Lucas Vinicius Pereira Lima",
+      "email": "lucas.pereira@email.com",
+      "telefone": "(84) 98711-2233",
+      "cpf": "567.890.123-44",
+      "rg": "4.567.890 SSP",
+      "data_nascimento": "1996-11-05",
+      "tipo_sanguineo": "B+",
+      "data_filiacao": "2022-01-20",
+      "categoria": "Sócio Atleta",
+      "status": "Ativo",
+      "validade_carteirinha": "2026-12-31",
+      "cidade": "São Gonçalo do Amarante",
+      "estado": "RN",
+      "identidade_surda": "Surdo(a)",
+      "foto_url": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&auto=format&fit=crop&q=80"
+    },
+    {
+      "id": 4,
+      "matricula": "ASG-2022-015",
+      "nome": "Renata Albuquerque Mendes",
+      "email": "renata.mendes@email.com",
+      "telefone": "(84) 99654-7890",
+      "cpf": "789.012.345-66",
+      "rg": "5.678.901 SSP",
+      "data_nascimento": "1994-09-19",
+      "tipo_sanguineo": "AB+",
+      "data_filiacao": "2021-08-12",
+      "categoria": "Sócio Colaborador",
+      "status": "Ativo",
+      "validade_carteirinha": "2025-12-31",
+      "cidade": "Macaíba",
+      "estado": "RN",
+      "identidade_surda": "Intérprete / Familiar ouvinte",
+      "foto_url": "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=400&auto=format&fit=crop&q=80"
+    }
+  ],
+  "mensalidades": [
+    {
+      "id": 1,
+      "associado_id": 1,
+      "mes_referencia": 9,
+      "ano_referencia": 2026,
+      "valor": 25,
+      "data_pagamento": "2026-09-05",
+      "status": "Pago",
+      "metodo": "PIX"
+    },
+    {
+      "id": 2,
+      "associado_id": 1,
+      "mes_referencia": 8,
+      "ano_referencia": 2026,
+      "valor": 25,
+      "data_pagamento": "2026-08-04",
+      "status": "Pago",
+      "metodo": "PIX"
+    },
+    {
+      "id": 3,
+      "associado_id": 2,
+      "mes_referencia": 9,
+      "ano_referencia": 2026,
+      "valor": 25,
+      "data_pagamento": "2026-09-02",
+      "status": "Pago",
+      "metodo": "PIX"
+    },
+    {
+      "id": 4,
+      "associado_id": 3,
+      "mes_referencia": 9,
+      "ano_referencia": 2026,
+      "valor": 25,
+      "data_pagamento": "2026-09-06",
+      "status": "Pago",
+      "metodo": "PIX"
+    },
+    {
+      "id": 5,
+      "associado_id": 4,
+      "mes_referencia": 9,
+      "ano_referencia": 2026,
+      "valor": 25,
+      "status": "Pendente",
+      "metodo": "PIX"
+    }
+  ],
+  "carteirinhas": [
+    {
+      "id": 1,
+      "associado_id": 1,
+      "codigo_autenticacao": "ASSGA-2024-001-AUTH-9F83A2",
+      "data_emissao": "2024-01-10",
+      "data_validade": "2026-12-31",
+      "via": 1,
+      "ativa": false
+    },
+    {
+      "id": 2,
+      "associado_id": 2,
+      "codigo_autenticacao": "ASSGA-2023-042-AUTH-4B71C9",
+      "data_emissao": "2023-06-01",
+      "data_validade": "2026-12-31",
+      "via": 1,
+      "ativa": true
+    },
+    {
+      "id": 3,
+      "associado_id": 3,
+      "codigo_autenticacao": "ASSGA-2024-089-AUTH-2E19D5",
+      "data_emissao": "2024-02-15",
+      "data_validade": "2026-12-31",
+      "via": 1,
+      "ativa": true
+    },
+    {
+      "id": 4,
+      "associado_id": 4,
+      "codigo_autenticacao": "ASSGA-2022-015-AUTH-7C33F1",
+      "data_emissao": "2022-09-01",
+      "data_validade": "2025-12-31",
+      "via": 1,
+      "ativa": true
+    }
+  ],
+  "eventos": [
+    {
+      "id": 1,
+      "titulo": "Torneio Estadual de Futsal dos Surdos 2026",
+      "tipo": "Campeonato Oficial",
+      "data_inicio": "2026-10-12T09:00:00",
+      "local": "Ginásio Poliesportivo de São Gonçalo do Amarante - RN",
+      "descricao": "Competição que reúne equipes de surdos de várias regiões do Rio Grande do Norte e estados vizinhos.",
+      "libras_disponivel": true,
+      "imagem_url": "/imagens/foto1.jpg",
+      "destaque": true,
+      "ativo": true
+    },
+    {
+      "id": 2,
+      "titulo": "Encontro de Conscientização e Cultura Surda (Setembro Azul)",
+      "tipo": "Cultural e Comunitário",
+      "data_inicio": "2026-09-26T14:00:00",
+      "local": "Auditório da Casa de Cultura Municipal",
+      "descricao": "Palestras, oficinas em LIBRAS, apresentações teatrais e debates sobre acessibilidade e inclusão social.",
+      "libras_disponivel": true,
+      "imagem_url": "/imagens/Assga_foto.jpg",
+      "destaque": true,
+      "ativo": true
+    },
+    {
+      "id": 3,
+      "titulo": "2º HALLOWEEN ASSGA",
+      "tipo": "Confraternização e Esporte",
+      "data_inicio": "2026-10-15T18:00:00",
+      "data_fim": "2026-10-16T22:00:00",
+      "local": "Ginásio Poliesportivo de São Gonçalo do Amarante - RN",
+      "descricao": "Evento especial esportivo e de integração com premiações, confraternização e muita diversão.",
+      "libras_disponivel": true,
+      "imagem_url": "/imagens/halloween-assga.jpeg",
+      "destaque": true,
+      "ativo": true
+    },
+    {
+      "id": 4,
+      "titulo": "Assembleia Geral Ordinária de Prestação de Contas",
+      "tipo": "Institucional",
+      "data_inicio": "2026-11-20T18:30:00",
+      "local": "Sede Social da ASSGA",
+      "descricao": "Apresentação dos balancetes financeiros, relatório de atividades esportivas e deliberações estatutárias.",
+      "libras_disponivel": true,
+      "imagem_url": "/imagens/foto2.jpg",
+      "destaque": false,
+      "ativo": true
+    }
+  ]
+}

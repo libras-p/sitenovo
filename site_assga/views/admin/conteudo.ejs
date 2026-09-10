@@ -1,0 +1,180 @@
+<%- include('../layout/header') %>
+
+<div class="container py-2">
+    <%- include('nav_tabs') %>
+
+    <div class="card border-0 shadow-sm rounded-4 p-4 mb-4 bg-white">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+            <div>
+                <h4 class="fw-bold text-primary mb-1"><i class="fa-solid fa-panorama me-2"></i>Conteúdo do Portal</h4>
+                <p class="text-muted small mb-0">Gerencie os destaques visuais e as notícias em destaque na página inicial.</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm rounded-4 p-4 bg-white h-100">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold text-primary mb-0"><i class="fa-solid fa-images me-2"></i>Momentos da ASSGA</h5>
+                    <button type="button" class="btn btn-sm btn-primary rounded-pill" data-bs-toggle="modal" data-bs-target="#modalNovoMomento">
+                        <i class="fa-solid fa-plus me-1"></i> Novo
+                    </button>
+                </div>
+
+                <% if (momentosAssga && momentosAssga.length > 0) { %>
+                    <div class="d-grid gap-3">
+                        <% momentosAssga.forEach(function(item) { %>
+                        <div class="border rounded-4 p-3" style="background: linear-gradient(180deg, #f8fbff 0%, #eef6ff 100%); border-color: rgba(13,61,143,0.12) !important;">
+                            <div class="row g-3 align-items-center">
+                                <div class="col-md-4">
+                                    <img src="<%= item.imagem %>" alt="<%= item.titulo %>" class="img-fluid rounded-3 w-100" style="height: 110px; object-fit: cover;">
+                                </div>
+                                <div class="col-md-8">
+                                    <div class="d-flex justify-content-between align-items-start gap-3">
+                                        <div>
+                                            <span class="badge bg-warning text-dark mb-2"><%= item.badge %></span>
+                                            <h6 class="fw-bold text-dark mb-1"><%= item.titulo %></h6>
+                                        </div>
+                                        <form method="post" action="/admin/conteudo/momento/<%= item.id %>/excluir" onsubmit="return confirm('Remover este momento do portal?');">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill">
+                                                <i class="fa-solid fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                    <p class="small text-muted mb-0"><%= item.subtitulo %></p>
+                                </div>
+                            </div>
+                        </div>
+                        <% }); %>
+                    </div>
+                <% } else { %>
+                    <div class="text-center py-4 text-muted">
+                        <i class="fa-solid fa-image display-6 mb-2 opacity-50"></i>
+                        <p class="mb-0">Nenhum momento cadastrado.</p>
+                    </div>
+                <% } %>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm rounded-4 p-4 bg-white h-100">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold text-primary mb-0"><i class="fa-solid fa-newspaper me-2"></i>Notícias em Destaque</h5>
+                    <button type="button" class="btn btn-sm btn-primary rounded-pill" data-bs-toggle="modal" data-bs-target="#modalNovaNoticia">
+                        <i class="fa-solid fa-plus me-1"></i> Nova
+                    </button>
+                </div>
+
+                <% if (noticias && noticias.length > 0) { %>
+                    <div class="d-grid gap-3">
+                        <% noticias.forEach(function(noticia) { %>
+                        <div class="border rounded-4 p-3" style="background: linear-gradient(180deg, #fffdf7 0%, #fff6df 100%); border-color: rgba(255, 190, 0, 0.18) !important;">
+                            <div class="row g-3 align-items-center">
+                                <div class="col-md-4">
+                                    <img src="<%= noticia.imagem %>" alt="<%= noticia.titulo %>" class="img-fluid rounded-3 w-100" style="height: 110px; object-fit: cover;">
+                                </div>
+                                <div class="col-md-8">
+                                    <div class="d-flex justify-content-between align-items-start gap-3">
+                                        <div>
+                                            <span class="badge bg-warning text-dark mb-2"><%= noticia.data %></span>
+                                            <h6 class="fw-bold text-dark mb-1"><%= noticia.titulo %></h6>
+                                        </div>
+                                        <form method="post" action="/admin/conteudo/noticia/<%= noticia.id %>/excluir" onsubmit="return confirm('Remover esta notícia do destaque?');">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill">
+                                                <i class="fa-solid fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                    <p class="small text-muted mb-0"><%= noticia.conteudo %></p>
+                                </div>
+                            </div>
+                        </div>
+                        <% }); %>
+                    </div>
+                <% } else { %>
+                    <div class="text-center py-4 text-muted">
+                        <i class="fa-solid fa-newspaper display-6 mb-2 opacity-50"></i>
+                        <p class="mb-0">Nenhuma notícia em destaque cadastrada.</p>
+                    </div>
+                <% } %>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalNovoMomento" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header bg-primary text-white border-0 py-3">
+                <h5 class="modal-title fw-bold"><i class="fa-solid fa-images me-2"></i>Novo Momento da ASSGA</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <form method="post" action="/admin/conteudo/momento/novo">
+                <div class="modal-body p-4">
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label class="form-label small fw-bold">Título *</label>
+                            <input type="text" name="titulo" class="form-control" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold">Badge *</label>
+                            <input type="text" name="badge" class="form-control" value="Comunidade & Liderança" required>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-bold">Subtítulo *</label>
+                            <textarea name="subtitulo" class="form-control" rows="3" required></textarea>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-bold">URL da Imagem *</label>
+                            <input type="url" name="imagem" class="form-control" value="/imagens/Assga_foto.jpg" required>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light border-0 py-3">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary fw-bold px-4">Salvar Momento</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalNovaNoticia" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header bg-warning text-dark border-0 py-3">
+                <h5 class="modal-title fw-bold"><i class="fa-solid fa-newspaper me-2"></i>Nova Notícia em Destaque</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <form method="post" action="/admin/conteudo/noticia/novo">
+                <div class="modal-body p-4">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label small fw-bold">Título *</label>
+                            <input type="text" name="titulo" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Data *</label>
+                            <input type="text" name="data" class="form-control" value="<%= new Date().toLocaleDateString('pt-BR') %>" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">URL da Imagem *</label>
+                            <input type="url" name="imagem" class="form-control" value="/imagens/foto1.jpg" required>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-bold">Conteúdo *</label>
+                            <textarea name="conteudo" class="form-control" rows="4" required></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light border-0 py-3">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-warning text-dark fw-bold px-4">Publicar Notícia</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<%- include('../layout/footer') %>

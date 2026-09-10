@@ -115,14 +115,14 @@
                             </td>
                             <td class="text-end pe-4">
                                 <div class="btn-group">
-                                    <a href="/carteirinha/<%= s.matricula %>" target="_blank" class="btn btn-sm btn-outline-primary" title="Ver e Imprimir Carteirinha">
+                                    <a href="/carteirinha/<%= s.matricula %>" target="_blank" class="btn btn-sm btn-success" title="Ver e Imprimir Carteirinha">
                                         <i class="fa-solid fa-id-card"></i>
                                     </a>
-                                    <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalEditar<%= s.id %>" title="Editar Dados">
+                                    <button type="button" class="btn btn-sm btn-warning text-dark" data-bs-toggle="modal" data-bs-target="#modalEditar<%= s.id %>" title="Editar Dados">
                                         <i class="fa-solid fa-pen-to-square"></i>
                                     </button>
                                     <form method="post" action="/admin/associados/<%= s.id %>/excluir" class="d-inline" onsubmit="return confirm('Deseja realmente remover o associado <%= s.nome %>?');">
-                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="Remover Associado">
+                                        <button type="submit" class="btn btn-sm btn-danger" title="Remover Associado">
                                             <i class="fa-solid fa-trash"></i>
                                         </button>
                                     </form>
@@ -138,7 +138,7 @@
                                         <h5 class="modal-title fw-bold"><i class="fa-solid fa-user-pen me-2"></i>Editar Associado - <%= s.matricula %></h5>
                                         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
                                     </div>
-                                    <form method="post" action="/admin/associados/<%= s.id %>/editar">
+                                    <form method="post" action="/admin/associados/<%= s.id %>/editar" enctype="multipart/form-data">
                                         <div class="modal-body p-4">
                                             <div class="row g-3">
                                                 <div class="col-md-8">
@@ -199,7 +199,12 @@
                                                 </div>
                                                 <div class="col-md-6">
                                                     <label class="form-label small fw-bold">URL da Foto</label>
-                                                    <input type="url" name="foto_url" class="form-control" value="<%= s.foto_url %>">
+                                                    <input type="url" name="foto_url" class="form-control" value="<%= s.foto_url %>" placeholder="https://... ou deixe vazio para manter a atual">
+                                                </div>
+                                                <div class="col-md-12">
+                                                    <label class="form-label small fw-bold">Enviar Foto do Associado</label>
+                                                    <input type="file" name="foto" class="form-control" accept="image/*">
+                                                    <div class="form-text">Se selecionar uma imagem, ela substituirá a URL anterior.</div>
                                                 </div>
                                             </div>
                                         </div>
@@ -234,7 +239,7 @@
                 <h5 class="modal-title fw-bold"><i class="fa-solid fa-user-plus me-2"></i>Cadastrar Novo Associado</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
             </div>
-            <form method="post" action="/admin/associados/novo">
+            <form method="post" action="/admin/associados/novo" enctype="multipart/form-data">
                 <div class="modal-body p-4">
                     <div class="row g-3">
                         <div class="col-md-8">
@@ -301,6 +306,10 @@
                         <div class="col-md-6">
                             <label class="form-label small fw-bold">URL da Foto (Opcional)</label>
                             <input type="url" name="foto_url" class="form-control" placeholder="https://...">
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label small fw-bold">Ou enviar foto do associado</label>
+                            <input type="file" name="foto" class="form-control" accept="image/*">
                         </div>
                     </div>
                 </div>

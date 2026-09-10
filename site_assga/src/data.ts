@@ -104,6 +104,15 @@ export interface Noticia {
   destaque: boolean;
 }
 
+export interface MomentoAssga {
+  id: number;
+  titulo: string;
+  subtitulo: string;
+  imagem: string;
+  badge: string;
+  ordem: number;
+}
+
 export const assgaConfig = {
   nome_associacao: 'ASSGA - Associação dos Surdos de São Gonçalo do Amarante',
   sigla: 'ASSGA',
@@ -485,6 +494,33 @@ export const capitulosEstatuto: CapituloEstatuto[] = [
         texto: 'São direitos dos associados em dia com suas mensalidades: participar das assembleias gerais, votar e ser votado, usufruir da carteirinha oficial e participar das modalidades esportivas.',
       },
     ],
+  },
+];
+
+export const momentosAssga: MomentoAssga[] = [
+  {
+    id: 1,
+    titulo: 'Encontro Oficial da ASSGA',
+    subtitulo: 'União de associados, atletas e famílias surdas de São Gonçalo do Amarante e região metropolitana.',
+    imagem: '/imagens/Assga_foto.jpg',
+    badge: 'Comunidade & Liderança',
+    ordem: 1,
+  },
+  {
+    id: 2,
+    titulo: 'Futsal e Alto Rendimento',
+    subtitulo: 'Treinamento constante e preparação para os campeonatos potiguares e interestaduais.',
+    imagem: '/imagens/foto1.jpg',
+    badge: 'Desporto de Surdos',
+    ordem: 2,
+  },
+  {
+    id: 3,
+    titulo: 'Integração e Cidadania em LIBRAS',
+    subtitulo: 'Valorização da cultura surda, respeito aos direitos humanos e acessibilidade linguística plena.',
+    imagem: '/imagens/foto2.jpg',
+    badge: 'Cultura e Cidadania',
+    ordem: 3,
   },
 ];
 

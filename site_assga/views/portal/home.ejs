@@ -88,41 +88,23 @@
         </div>
         <div id="eventosSlider" class="carousel slide carousel-fade shadow-sm rounded-4 overflow-hidden" data-bs-ride="carousel">
             <div class="carousel-indicators">
-                <button type="button" data-bs-target="#eventosSlider" data-bs-slide-to="0" class="active" aria-current="true" aria-label="Foto 1"></button>
-                <button type="button" data-bs-target="#eventosSlider" data-bs-slide-to="1" aria-label="Foto 2"></button>
-                <button type="button" data-bs-target="#eventosSlider" data-bs-slide-to="2" aria-label="Foto 3"></button>
+                <% momentosAssga.forEach(function(item, index) { %>
+                <button type="button" data-bs-target="#eventosSlider" data-bs-slide-to="<%= index %>" class="<%= index === 0 ? 'active' : '' %>" aria-current="<%= index === 0 ? 'true' : 'false' %>" aria-label="Foto <%= index + 1 %>"></button>
+                <% }); %>
             </div>
             <div class="carousel-inner">
-                <div class="carousel-item active">
+                <% momentosAssga.forEach(function(item, index) { %>
+                <div class="carousel-item <%= index === 0 ? 'active' : '' %>">
                     <div class="d-flex align-items-end position-relative" style="height: 380px; background-color: #001f3f;">
-                        <img src="/imagens/Assga_foto.jpg" alt="ASSGA em atividade" class="w-100 h-100 object-fit-cover opacity-75">
+                        <img src="<%= item.imagem %>" alt="<%= item.titulo %>" class="w-100 h-100 object-fit-cover opacity-75">
                         <div class="position-absolute bottom-0 start-0 w-100 p-4" style="background: linear-gradient(transparent, rgba(0,0,0,0.85)); color: white;">
-                            <span class="badge bg-warning text-dark mb-2">Comunidade & Liderança</span>
-                            <h4 class="fw-bold mb-1">Encontro Oficial da ASSGA</h4>
-                            <p class="small mb-0 text-light">União de associados, atletas e famílias surdas de São Gonçalo do Amarante e região metropolitana.</p>
+                            <span class="badge bg-warning text-dark mb-2"><%= item.badge %></span>
+                            <h4 class="fw-bold mb-1"><%= item.titulo %></h4>
+                            <p class="small mb-0 text-light"><%= item.subtitulo %></p>
                         </div>
                     </div>
                 </div>
-                <div class="carousel-item">
-                    <div class="d-flex align-items-end position-relative" style="height: 380px; background-color: #001f3f;">
-                        <img src="/imagens/foto1.jpg" alt="Atividades esportivas" class="w-100 h-100 object-fit-cover opacity-75">
-                        <div class="position-absolute bottom-0 start-0 w-100 p-4" style="background: linear-gradient(transparent, rgba(0,0,0,0.85)); color: white;">
-                            <span class="badge bg-primary mb-2">Desporto de Surdos</span>
-                            <h4 class="fw-bold mb-1">Futsal e Alto Rendimento</h4>
-                            <p class="small mb-0 text-light">Treinamento constante e preparação para os campeonatos potiguares e interestaduais.</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="carousel-item">
-                    <div class="d-flex align-items-end position-relative" style="height: 380px; background-color: #001f3f;">
-                        <img src="/imagens/foto2.jpg" alt="Integração Social" class="w-100 h-100 object-fit-cover opacity-75">
-                        <div class="position-absolute bottom-0 start-0 w-100 p-4" style="background: linear-gradient(transparent, rgba(0,0,0,0.85)); color: white;">
-                            <span class="badge bg-danger mb-2">Cultura e Cidadania</span>
-                            <h4 class="fw-bold mb-1">Integração e Cidadania em LIBRAS</h4>
-                            <p class="small mb-0 text-light">Valorização da cultura surda, respeito aos direitos humanos e acessibilidade linguística plena.</p>
-                        </div>
-                    </div>
-                </div>
+                <% }); %>
             </div>
             <button class="carousel-control-prev" type="button" data-bs-target="#eventosSlider" data-bs-slide="prev">
                 <span class="carousel-control-prev-icon" aria-hidden="true"></span>
