@@ -355,11 +355,6 @@
                     <% } %>
                     <% const isAdminView = String(typeof bodyClass !== 'undefined' && bodyClass ? bodyClass : '').includes('admin-theme') || String(typeof activePage !== 'undefined' && activePage ? activePage : '').startsWith('admin'); %>
                     <% if (!isAdminView) { %>
-                    <li class="nav-item ms-lg-1">
-                        <a class="btn btn-danger btn-sm px-3 rounded-pill fw-bold text-white shadow-sm" href="/admin" title="Painel Administrativo">
-                            <i class="fa-solid fa-shield-halved me-1"></i> Admin
-                        </a>
-                    </li>
                     <% } %>
                 </ul>
             </div>

@@ -1,0 +1,53 @@
+<%- include('../layout/header') %>
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm rounded-4 p-4 p-md-5" style="background: linear-gradient(135deg, #ffffff 0%, #edf5ff 100%); border: 1px solid rgba(13,61,143,0.12) !important;">
+                <div class="text-center mb-4">
+                    <span class="badge bg-primary px-3 py-2 rounded-pill fw-bold mb-3">
+                        <i class="fa-solid fa-handshake-angle me-2"></i>Seja um Voluntário
+                    </span>
+                    <h1 class="fw-bold text-primary mb-2">Venha fazer parte da ASSGA</h1>
+                    <p class="text-muted mb-0">Sua disponibilidade pode transformar a vida de muitas pessoas e fortalecer a comunidade.</p>
+                </div>
+
+                <form method="post" action="/voluntario">
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-primary mb-1">Nome completo</label>
+                        <input type="text" name="nome" class="form-control border-primary-subtle" placeholder="Nome completo" required>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-primary mb-1">E-mail</label>
+                            <input type="email" name="email" class="form-control border-primary-subtle" placeholder="seu@email.com" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-primary mb-1">Telefone</label>
+                            <input type="tel" name="telefone" class="form-control border-primary-subtle" placeholder="(84)99999-0000" required>
+                        </div>
+                    </div>
+
+                    <div class="mt-3">
+                        <label class="form-label small fw-bold text-primary mb-1">Sua idade</label>
+                        <input type="number" name="idade" class="form-control border-primary-subtle" min="10" max="100" placeholder="Sua idade" required>
+                    </div>
+
+                    <div class="mt-3">
+                        <label class="form-label small fw-bold text-primary mb-1">Mensagem</label>
+                        <textarea name="mensagem" class="form-control border-primary-subtle" rows="5" placeholder="Escreva sua mensagem aqui.." required></textarea>
+                    </div>
+
+                    <div class="d-flex justify-content-center mt-4">
+                        <button type="submit" class="btn btn-primary fw-bold px-4 rounded-pill">
+                            <i class="fa-solid fa-heart me-2"></i>Quero ser voluntário
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<%- include('../layout/footer') %>

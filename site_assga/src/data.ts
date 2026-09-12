@@ -113,6 +113,25 @@ export interface MomentoAssga {
   ordem: number;
 }
 
+export interface ContatoMensagem {
+  id: number;
+  nome: string;
+  email: string;
+  telefone: string;
+  mensagem: string;
+  criado_em: string;
+}
+
+export interface VoluntarioCadastro {
+  id: number;
+  nome: string;
+  email: string;
+  telefone: string;
+  idade: string;
+  mensagem: string;
+  criado_em: string;
+}
+
 export const assgaConfig = {
   nome_associacao: 'ASSGA - Associação dos Surdos de São Gonçalo do Amarante',
   sigla: 'ASSGA',
@@ -496,6 +515,10 @@ export const capitulosEstatuto: CapituloEstatuto[] = [
     ],
   },
 ];
+
+export const contatos: ContatoMensagem[] = [];
+
+export const voluntarios: VoluntarioCadastro[] = [];
 
 export const momentosAssga: MomentoAssga[] = [
   {

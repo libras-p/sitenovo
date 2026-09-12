@@ -15,6 +15,8 @@ import {
   capitulosEstatuto,
   noticias,
   momentosAssga,
+  contatos,
+  voluntarios,
   Associado,
   Mensalidade
 } from './src/data.js';
@@ -40,6 +42,8 @@ function persistDataStore() {
       eventos,
       noticias,
       momentosAssga,
+      contatos,
+      voluntarios,
     };
     fs.writeFileSync(dataStorePath, JSON.stringify(payload, null, 2), 'utf8');
   } catch (error) {
@@ -78,6 +82,12 @@ function loadPersistedData() {
     }
     if (parsed.momentosAssga && Array.isArray(parsed.momentosAssga)) {
       momentosAssga.splice(0, momentosAssga.length, ...parsed.momentosAssga);
+    }
+    if (parsed.contatos && Array.isArray(parsed.contatos)) {
+      contatos.splice(0, contatos.length, ...parsed.contatos);
+    }
+    if (parsed.voluntarios && Array.isArray(parsed.voluntarios)) {
+      voluntarios.splice(0, voluntarios.length, ...parsed.voluntarios);
     }
   } catch (error) {
     console.warn('Não foi possível carregar os dados persistidos, mantendo o estado atual:', error);
@@ -230,6 +240,22 @@ app.get('/historia', (req: Request, res: Response) => {
   res.render('portal/historia', {
     title: 'Nossa História - ASSGA',
     activePage: 'historia',
+  });
+});
+
+// 2.1 Contato
+app.get('/contato', (req: Request, res: Response) => {
+  res.render('portal/contato', {
+    title: 'Fale Conosco - ASSGA',
+    activePage: 'contato',
+  });
+});
+
+// 2.2 Voluntário
+app.get('/voluntario', (req: Request, res: Response) => {
+  res.render('portal/voluntario', {
+    title: 'Seja um Voluntário - ASSGA',
+    activePage: 'voluntario',
   });
 });
 
@@ -1136,6 +1162,58 @@ app.post('/api/data', (req: Request, res: Response) => {
   }
   memoryDataStore.set(collection, req.body);
   res.json({ status: 'ok', collection });
+});
+
+app.post('/contato', (req: Request, res: Response) => {
+  const nome = String(req.body?.nome || '').trim();
+  const email = String(req.body?.email || '').trim();
+  const telefone = String(req.body?.telefone || '').trim();
+  const mensagem = String(req.body?.mensagem || '').trim();
+
+  if (!nome || !email || !telefone || !mensagem) {
+    addFlash(req, 'Preencha todos os campos do formulário de contato.', 'warning');
+    return res.redirect('/');
+  }
+
+  contatos.unshift({
+    id: Date.now(),
+    nome,
+    email,
+    telefone,
+    mensagem,
+    criado_em: new Date().toISOString(),
+  });
+  persistDataStore();
+
+  addFlash(req, 'Mensagem enviada com sucesso. Nossa equipe entrará em contato em breve.', 'success');
+  res.redirect('/');
+});
+
+app.post('/voluntario', (req: Request, res: Response) => {
+  const nome = String(req.body?.nome || '').trim();
+  const email = String(req.body?.email || '').trim();
+  const telefone = String(req.body?.telefone || '').trim();
+  const idade = String(req.body?.idade || '').trim();
+  const mensagem = String(req.body?.mensagem || '').trim();
+
+  if (!nome || !email || !telefone || !idade || !mensagem) {
+    addFlash(req, 'Preencha todos os campos para se voluntariar.', 'warning');
+    return res.redirect('/');
+  }
+
+  voluntarios.unshift({
+    id: Date.now(),
+    nome,
+    email,
+    telefone,
+    idade,
+    mensagem,
+    criado_em: new Date().toISOString(),
+  });
+  persistDataStore();
+
+  addFlash(req, 'Sua vontade de ajudar foi registrada com sucesso. Em breve a ASSGA entrará em contato.', 'success');
+  res.redirect('/');
 });
 
 // 16. Assistente Virtual LIBRAS / Gemini API
