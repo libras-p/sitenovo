@@ -132,6 +132,14 @@ export interface VoluntarioCadastro {
   criado_em: string;
 }
 
+export interface ParceiroApoiador {
+  id: number;
+  nome: string;
+  link: string;
+  imagem: string;
+  ordem: number;
+}
+
 export const assgaConfig = {
   nome_associacao: 'ASSGA - Associação dos Surdos de São Gonçalo do Amarante',
   sigla: 'ASSGA',
@@ -519,6 +527,14 @@ export const capitulosEstatuto: CapituloEstatuto[] = [
 export const contatos: ContatoMensagem[] = [];
 
 export const voluntarios: VoluntarioCadastro[] = [];
+
+export const parceirosApoiadores: ParceiroApoiador[] = [
+  { id: 1, nome: 'United', link: '#', imagem: '/imagens/Assga_foto.jpg', ordem: 1 },
+  { id: 2, nome: 'Uzan', link: '#', imagem: '/imagens/Assga_foto.jpg', ordem: 2 },
+  { id: 3, nome: 'Dore', link: '#', imagem: '/imagens/Assga_foto.jpg', ordem: 3 },
+  { id: 4, nome: 'Ocern', link: '#', imagem: '/imagens/Assga_foto.jpg', ordem: 4 },
+  { id: 5, nome: 'Combrica', link: '#', imagem: '/imagens/Assga_foto.jpg', ordem: 5 },
+];
 
 export const momentosAssga: MomentoAssga[] = [
   {

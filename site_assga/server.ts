@@ -17,6 +17,7 @@ import {
   momentosAssga,
   contatos,
   voluntarios,
+  parceirosApoiadores,
   Associado,
   Mensalidade
 } from './src/data.js';
@@ -44,6 +45,7 @@ function persistDataStore() {
       momentosAssga,
       contatos,
       voluntarios,
+      parceirosApoiadores,
     };
     fs.writeFileSync(dataStorePath, JSON.stringify(payload, null, 2), 'utf8');
   } catch (error) {
@@ -88,6 +90,9 @@ function loadPersistedData() {
     }
     if (parsed.voluntarios && Array.isArray(parsed.voluntarios)) {
       voluntarios.splice(0, voluntarios.length, ...parsed.voluntarios);
+    }
+    if (parsed.parceirosApoiadores && Array.isArray(parsed.parceirosApoiadores)) {
+      parceirosApoiadores.splice(0, parceirosApoiadores.length, ...parsed.parceirosApoiadores);
     }
   } catch (error) {
     console.warn('Não foi possível carregar os dados persistidos, mantendo o estado atual:', error);
@@ -156,6 +161,7 @@ app.use((req: Request, res: Response, next) => {
   const loggedUser = userId ? associados.find(a => a.id === userId) || null : null;
   res.locals.user = loggedUser;
   res.locals.config = assgaConfig;
+  res.locals.parceirosApoiadores = parceirosApoiadores;
   res.locals.messages = req.session?.messages || [];
   req.session!.messages = [];
   res.locals.hostUrl = `${req.protocol}://${req.get('host')}`;
@@ -853,6 +859,39 @@ app.post('/admin/mensalidades/:id/status', (req: Request, res: Response) => {
   res.redirect('/admin/mensalidades');
 });
 
+// Excluir Mensalidade
+app.post('/admin/mensalidades/:id/excluir', (req: Request, res: Response) => {
+  if (!requireAdmin(req, res)) return;
+
+  const id = Number(req.params.id);
+  const index = mensalidades.findIndex(item => item.id === id);
+
+  if (index !== -1) {
+    const valor = mensalidades[index].valor;
+    mensalidades.splice(index, 1);
+    persistDataStore();
+    addFlash(req, `Mensalidade de R$ ${Number(valor).toFixed(2).replace('.', ',')} removida com sucesso.`, 'warning');
+  }
+
+  res.redirect('/admin/mensalidades');
+});
+
+app.delete('/admin/mensalidades/:id/excluir', (req: Request, res: Response) => {
+  if (!requireAdmin(req, res)) return;
+
+  const id = Number(req.params.id);
+  const index = mensalidades.findIndex(item => item.id === id);
+
+  if (index !== -1) {
+    const valor = mensalidades[index].valor;
+    mensalidades.splice(index, 1);
+    persistDataStore();
+    addFlash(req, `Mensalidade de R$ ${Number(valor).toFixed(2).replace('.', ',')} removida com sucesso.`, 'warning');
+  }
+
+  res.redirect('/admin/mensalidades');
+});
+
 // 4. Lista de Carteirinhas
 app.get('/admin/carteirinhas', (req: Request, res: Response) => {
   if (!requireAdmin(req, res)) return;
@@ -882,6 +921,23 @@ app.post('/admin/carteirinhas/:id/toggle', (req: Request, res: Response) => {
     cart.ativa = !cart.ativa;
     persistDataStore();
     addFlash(req, `Carteirinha ${cart.codigo_autenticacao} ${cart.ativa ? 'ativada' : 'suspensa'} com sucesso!`, 'info');
+  }
+
+  res.redirect('/admin/carteirinhas');
+});
+
+// Excluir Carteirinha
+app.post('/admin/carteirinhas/:id/excluir', (req: Request, res: Response) => {
+  if (!requireAdmin(req, res)) return;
+
+  const id = Number(req.params.id);
+  const index = carteirinhas.findIndex(c => c.id === id);
+
+  if (index !== -1) {
+    const codigo = carteirinhas[index].codigo_autenticacao;
+    carteirinhas.splice(index, 1);
+    persistDataStore();
+    addFlash(req, `Carteirinha ${codigo} removida com sucesso.`, 'warning');
   }
 
   res.redirect('/admin/carteirinhas');
@@ -971,7 +1027,49 @@ app.get('/admin/conteudo', (req: Request, res: Response) => {
     totalEventos: eventos.length,
     momentosAssga,
     noticias,
+    parceirosApoiadores,
   });
+});
+
+app.post('/admin/conteudo/parceiro/novo', (req: Request, res: Response) => {
+  if (!requireAdmin(req, res)) return;
+
+  const nome = String(req.body.nome || '').trim();
+  const link = String(req.body.link || '').trim();
+  const imagem = String(req.body.imagem || '').trim();
+
+  if (!nome || !imagem) {
+    addFlash(req, 'Informe o nome e a imagem do parceiro ou apoiador.', 'warning');
+    return res.redirect('/admin/conteudo');
+  }
+
+  parceirosApoiadores.unshift({
+    id: Date.now(),
+    nome,
+    link: link || '#',
+    imagem,
+    ordem: parceirosApoiadores.length + 1,
+  });
+  persistDataStore();
+
+  addFlash(req, 'Parceiro/apoiador cadastrado com sucesso!', 'success');
+  res.redirect('/admin/conteudo');
+});
+
+app.post('/admin/conteudo/parceiro/:id/excluir', (req: Request, res: Response) => {
+  if (!requireAdmin(req, res)) return;
+
+  const id = Number(req.params.id);
+  const index = parceirosApoiadores.findIndex(item => item.id === id);
+
+  if (index !== -1) {
+    const nome = parceirosApoiadores[index].nome;
+    parceirosApoiadores.splice(index, 1);
+    persistDataStore();
+    addFlash(req, `Parceiro/apoiador "${nome}" removido.`, 'warning');
+  }
+
+  res.redirect('/admin/conteudo');
 });
 
 app.post('/admin/conteudo/momento/novo', (req: Request, res: Response) => {

@@ -72,21 +72,11 @@
                                 </form>
                             </td>
                             <td class="text-end pe-4">
-                                <div class="btn-group">
-                                    <% if (assoc) { %>
-                                    <a href="/carteirinha/<%= assoc.matricula %>" target="_blank" class="btn btn-sm btn-primary" title="Abrir Carteirinha para Impressão">
-                                        <i class="fa-solid fa-print me-1"></i> Imprimir
-                                    </a>
-                                    <% } %>
-                                    <form method="post" action="/admin/carteirinhas/<%= c.id %>/renovar" class="d-inline">
-                                        <button type="submit" class="btn btn-sm btn-outline-success" title="Renovar Validade por mais 1 Ano">
-                                            <i class="fa-solid fa-rotate-right me-1"></i> +1 Ano
-                                        </button>
-                                    </form>
-                                    <a href="/validar/<%= c.codigo_autenticacao %>" target="_blank" class="btn btn-sm btn-outline-info" title="Testar Validação Digital">
-                                        <i class="fa-solid fa-check-double"></i>
-                                    </a>
-                                </div>
+                                <form method="post" action="/admin/carteirinhas/<%= c.id %>/excluir" class="d-inline" onsubmit="return confirm('Deseja realmente excluir esta carteirinha?');">
+                                    <button type="submit" class="btn btn-sm btn-danger fw-bold px-3" title="Excluir Carteirinha">
+                                        <i class="fa-solid fa-trash me-1"></i> Delete
+                                    </button>
+                                </form>
                             </td>
                         </tr>
                         <% }); %>
