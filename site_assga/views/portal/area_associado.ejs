@@ -9,7 +9,7 @@
                 <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
                     <h3 class="fw-bold mb-0 text-white"><%= associado.nome %></h3>
                     <span class="badge bg-warning text-dark fw-bold"><%= associado.categoria %></span>
-                    <span class="badge bg-success"><%= associado.status %></span>
+                    <span class="badge rounded-pill px-3 py-2 fw-bold border border-2 <%= associado.status === 'Ativo' ? 'bg-success border-success text-white' : associado.status === 'Pendente' ? 'bg-warning border-warning text-dark' : 'bg-danger border-danger text-white' %>"><%= associado.status %></span>
                 </div>
                 <div class="text-light opacity-90 small">
                     <span class="me-3"><i class="fa-solid fa-id-badge text-warning me-1"></i> Matrícula: <strong><%= associado.matricula %></strong></span>

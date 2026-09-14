@@ -23,7 +23,7 @@
                     <div class="mb-2"><strong>Matrícula:</strong> <%= associado.matricula %></div>
                     <div class="mb-2"><strong>Categoria:</strong> <%= associado.categoria %></div>
                     <div class="mb-2"><strong>Validade:</strong> <%= carteirinha.data_validade.split('-').reverse().join('/') %></div>
-                    <div class="mb-2"><strong>Status do Sócio:</strong> <span class="badge <%= associado.status === 'Ativo' ? 'bg-success' : 'bg-danger' %>"><%= associado.status %></span></div>
+                    <div class="mb-2"><strong>Status do Sócio:</strong> <span class="badge rounded-pill px-3 py-2 fw-bold border border-2 <%= associado.status === 'Ativo' ? 'bg-success border-success text-white' : associado.status === 'Pendente' ? 'bg-warning border-warning text-dark' : 'bg-danger border-danger text-white' %>"><%= associado.status %></span></div>
                     <div class="mb-0 text-muted"><strong>Autenticação:</strong> <span class="font-monospace"><%= carteirinha.codigo_autenticacao %></span></div>
                 </div>
 

@@ -1,7 +1,17 @@
 {
   "associados": [],
   "mensalidades": [],
-  "carteirinhas": [],
+  "carteirinhas": [
+    {
+      "id": 1789409409430,
+      "associado_id": 1789409409430,
+      "codigo_autenticacao": "ASSGA-2026-001-AUTH-DEW2CT",
+      "data_emissao": "2026-09-14",
+      "data_validade": "2026-12-31",
+      "via": 1,
+      "ativa": false
+    }
+  ],
   "eventos": [],
   "noticias": [],
   "momentosAssga": [],
