@@ -25,10 +25,11 @@ import { ADMIN_PASSWORD, isValidAdminPassword } from './adminAuth.js';
 
 const app = express();
 const PORT = 3000;
-const dataStorePath = process.env.VERCEL
+const isServerless = Boolean(process.env.VERCEL || process.env.NETLIFY);
+const dataStorePath = isServerless
   ? '/tmp/assga-data.json'
   : path.join(process.cwd(), 'data', 'assga-data.json');
-const uploadDir = process.env.VERCEL
+const uploadDir = isServerless
   ? '/tmp/assga-uploads'
   : path.join(process.cwd(), 'public', 'imagens', 'uploads');
 
@@ -40,7 +41,10 @@ function persistDataStore() {
       associados,
       mensalidades,
       carteirinhas,
+      membrosDiretoria,
+      modalidades,
       eventos,
+      capitulosEstatuto,
       noticias,
       momentosAssga,
       contatos,
@@ -76,8 +80,17 @@ function loadPersistedData() {
     if (parsed.carteirinhas && Array.isArray(parsed.carteirinhas)) {
       carteirinhas.splice(0, carteirinhas.length, ...parsed.carteirinhas);
     }
+    if (parsed.membrosDiretoria && Array.isArray(parsed.membrosDiretoria)) {
+      membrosDiretoria.splice(0, membrosDiretoria.length, ...parsed.membrosDiretoria);
+    }
+    if (parsed.modalidades && Array.isArray(parsed.modalidades)) {
+      modalidades.splice(0, modalidades.length, ...parsed.modalidades);
+    }
     if (parsed.eventos && Array.isArray(parsed.eventos)) {
       eventos.splice(0, eventos.length, ...parsed.eventos);
+    }
+    if (parsed.capitulosEstatuto && Array.isArray(parsed.capitulosEstatuto)) {
+      capitulosEstatuto.splice(0, capitulosEstatuto.length, ...parsed.capitulosEstatuto);
     }
     if (parsed.noticias && Array.isArray(parsed.noticias)) {
       noticias.splice(0, noticias.length, ...parsed.noticias);
@@ -97,6 +110,22 @@ function loadPersistedData() {
   } catch (error) {
     console.warn('Não foi possível carregar os dados persistidos, mantendo o estado atual:', error);
   }
+}
+
+function resetAllPortalData() {
+  associados.splice(0, associados.length);
+  mensalidades.splice(0, mensalidades.length);
+  carteirinhas.splice(0, carteirinhas.length);
+  membrosDiretoria.splice(0, membrosDiretoria.length);
+  modalidades.splice(0, modalidades.length);
+  eventos.splice(0, eventos.length);
+  capitulosEstatuto.splice(0, capitulosEstatuto.length);
+  noticias.splice(0, noticias.length);
+  momentosAssga.splice(0, momentosAssga.length);
+  contatos.splice(0, contatos.length);
+  voluntarios.splice(0, voluntarios.length);
+  parceirosApoiadores.splice(0, parceirosApoiadores.length);
+  persistDataStore();
 }
 
 loadPersistedData();
@@ -547,6 +576,14 @@ app.post('/admin/login', (req: Request, res: Response) => {
 app.get('/admin/logout', (req: Request, res: Response) => {
   req.session = null;
   res.redirect('/admin/login');
+});
+
+app.post('/admin/resetar-dados', (req: Request, res: Response) => {
+  if (!requireAdmin(req, res)) return;
+
+  resetAllPortalData();
+  addFlash(req, 'Todos os dados do portal foram apagados com sucesso.', 'warning');
+  return res.redirect('/admin');
 });
 
 // Helper para mapa de associados
@@ -1365,9 +1402,8 @@ app.post('/api/assistente-libras', async (req: Request, res: Response) => {
   }
 });
 
-// Start the local HTTP server only for non-Vercel environments.
-// On Vercel, the platform invokes the exported app as a serverless function.
-if (!process.env.VERCEL) {
+// Start the local HTTP server only outside serverless environments.
+if (!isServerless) {
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`Portal ASSGA running on http://localhost:${PORT}`);
   });

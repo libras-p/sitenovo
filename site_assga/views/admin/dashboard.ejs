@@ -91,6 +91,11 @@
             <a href="/admin/conteudo" class="btn btn-outline-info fw-semibold rounded-pill px-3">
                 <i class="fa-solid fa-panorama me-1"></i> Gerenciar Conteúdo do Portal
             </a>
+            <form method="post" action="/admin/resetar-dados" class="d-inline" onsubmit="return confirm('ATENÇÃO: esta ação apaga todos os dados do portal. Deseja realmente continuar?');">
+                <button type="submit" class="btn btn-outline-danger fw-semibold rounded-pill px-3">
+                    <i class="fa-solid fa-trash-can me-1"></i> Apagar Todos os Dados
+                </button>
+            </form>
         </div>
     </div>
 
