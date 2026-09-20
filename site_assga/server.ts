@@ -1022,6 +1022,10 @@ app.get('/admin/comunicacao', (req: Request, res: Response) => {
     totalCarteirinhas: carteirinhas.length,
     totalEventos: eventos.length,
     destinatariosAtivos,
+    totalVoluntarios: voluntarios.length,
+    totalContatos: contatos.length,
+    voluntarios: [...voluntarios].slice(0, 20),
+    contatos: [...contatos].slice(0, 20),
     ultimaMensagem: asSingleString(req.query.ultimaMensagem),
   });
 });
@@ -1349,6 +1353,38 @@ app.post('/voluntario', (req: Request, res: Response) => {
 
   addFlash(req, 'Sua vontade de ajudar foi registrada com sucesso. Em breve a ASSGA entrará em contato.', 'success');
   res.redirect('/');
+});
+
+app.post('/admin/contatos/:id/excluir', (req: Request, res: Response) => {
+  if (!requireAdmin(req, res)) return;
+
+  const id = Number(req.params.id);
+  const index = contatos.findIndex(item => item.id === id);
+
+  if (index !== -1) {
+    const nome = contatos[index].nome;
+    contatos.splice(index, 1);
+    persistDataStore();
+    addFlash(req, `Mensagem de contato de ${nome} removida com sucesso.`, 'warning');
+  }
+
+  return res.redirect('/admin/comunicacao');
+});
+
+app.post('/admin/voluntarios/:id/excluir', (req: Request, res: Response) => {
+  if (!requireAdmin(req, res)) return;
+
+  const id = Number(req.params.id);
+  const index = voluntarios.findIndex(item => item.id === id);
+
+  if (index !== -1) {
+    const nome = voluntarios[index].nome;
+    voluntarios.splice(index, 1);
+    persistDataStore();
+    addFlash(req, `Registro de voluntário de ${nome} removido com sucesso.`, 'warning');
+  }
+
+  return res.redirect('/admin/comunicacao');
 });
 
 // 16. Assistente Virtual LIBRAS / Gemini API
