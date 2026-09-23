@@ -9,4 +9,6 @@ O projeto já inclui `netlify.toml` e a Function `netlify/functions/server.ts` p
 3. Configure as variáveis `SESSION_SECRET` e, opcionalmente, `GEMINI_API_KEY` nas variáveis de ambiente do site.
 4. Faça o deploy com o comando de build `npm run build`.
 
-O armazenamento de dados e uploads em produção usa `/tmp`, que é temporário em Functions. Para manter alterações do painel administrativo após novos deploys ou reinicializações, será necessário conectar um banco de dados e armazenamento de arquivos permanentes.
+Para manter associados e notícias no painel administrativo em produção, configure também `DATABASE_URL` com a URL de um PostgreSQL (Neon, Supabase, Vercel Postgres ou outro provedor compatível). Na primeira inicialização, as tabelas `associados` e `noticias` são criadas automaticamente e, se estiverem vazias, recebem os dados existentes em `data/assga-data.json`.
+
+Sem `DATABASE_URL`, o projeto continua usando o JSON local para desenvolvimento. Em Functions, o armazenamento local e os uploads em `/tmp` são temporários; por isso, fotos de associados ainda precisam de um storage permanente para produção.

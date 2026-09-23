@@ -22,6 +22,15 @@ import {
   Mensalidade
 } from './src/data.js';
 import { ADMIN_PASSWORD, isValidAdminPassword } from './adminAuth.js';
+import {
+  databaseEnabled,
+  deleteAssociado,
+  deleteNoticia,
+  initializePostgresData,
+  refreshPostgresData,
+  saveAssociado,
+  saveNoticia,
+} from './src/db.js';
 
 const app = express();
 const PORT = 3000;
@@ -129,6 +138,9 @@ function resetAllPortalData() {
 }
 
 loadPersistedData();
+if (databaseEnabled) {
+  await initializePostgresData();
+}
 
 try {
   fs.mkdirSync(uploadDir, { recursive: true });
@@ -256,7 +268,8 @@ function findAssociadoPorIdentificador(identificador: string): Associado | undef
 
 // Routes
 // 1. Home
-app.get('/', (req: Request, res: Response) => {
+app.get('/', async (req: Request, res: Response) => {
+  await refreshPostgresData();
   const associadosEmDestaque = associados
     .filter(a => a.status === 'Ativo')
     .slice(0, 4);
@@ -628,8 +641,9 @@ app.get('/admin', (req: Request, res: Response) => {
 });
 
 // 2. Lista de Associados
-app.get('/admin/associados', (req: Request, res: Response) => {
+app.get('/admin/associados', async (req: Request, res: Response) => {
   if (!requireAdmin(req, res)) return;
+  await refreshPostgresData();
 
   const busca = asSingleString(req.query.busca).trim().toLowerCase();
   const statusFiltro = asSingleString(req.query.status).trim();
@@ -672,7 +686,7 @@ app.get('/admin/associados', (req: Request, res: Response) => {
 });
 
 // Novo Associado
-app.post('/admin/associados/novo', upload.single('foto'), (req: Request, res: Response) => {
+app.post('/admin/associados/novo', upload.single('foto'), async (req: Request, res: Response) => {
   if (!requireAdmin(req, res)) return;
 
   const {
@@ -717,6 +731,7 @@ app.post('/admin/associados/novo', upload.single('foto'), (req: Request, res: Re
   };
 
   associados.unshift(novoAssociado);
+  await saveAssociado(novoAssociado);
   persistDataStore();
 
   // Gera carteirinha oficial vinculada
@@ -739,7 +754,7 @@ app.post('/admin/associados/novo', upload.single('foto'), (req: Request, res: Re
 });
 
 // Editar Associado
-app.post('/admin/associados/:id/editar', upload.single('foto'), (req: Request, res: Response) => {
+app.post('/admin/associados/:id/editar', upload.single('foto'), async (req: Request, res: Response) => {
   if (!requireAdmin(req, res)) return;
 
   const id = Number(req.params.id);
@@ -766,6 +781,7 @@ app.post('/admin/associados/:id/editar', upload.single('foto'), (req: Request, r
       cart.ativa = assoc.status === 'Ativo';
     }
 
+    await saveAssociado(assoc);
     persistDataStore();
     addFlash(req, `Dados de ${assoc.nome} atualizados com sucesso!`, 'success');
   } else {
@@ -776,7 +792,7 @@ app.post('/admin/associados/:id/editar', upload.single('foto'), (req: Request, r
 });
 
 // Alterar Status do Associado
-app.post('/admin/associados/:id/status', (req: Request, res: Response) => {
+app.post('/admin/associados/:id/status', async (req: Request, res: Response) => {
   if (!requireAdmin(req, res)) return;
 
   const id = Number(req.params.id);
@@ -788,6 +804,7 @@ app.post('/admin/associados/:id/status', (req: Request, res: Response) => {
     if (cart) cart.ativa = assoc.status === 'Ativo';
 
     const statusType = assoc.status === 'Ativo' ? 'success' : assoc.status === 'Pendente' ? 'warning' : 'danger';
+    await saveAssociado(assoc);
     persistDataStore();
     addFlash(req, `Status de ${assoc.nome} alterado para ${assoc.status}!`, statusType);
   }
@@ -796,7 +813,7 @@ app.post('/admin/associados/:id/status', (req: Request, res: Response) => {
 });
 
 // Excluir Associado
-app.post('/admin/associados/:id/excluir', (req: Request, res: Response) => {
+app.post('/admin/associados/:id/excluir', async (req: Request, res: Response) => {
   if (!requireAdmin(req, res)) return;
 
   const id = Number(req.params.id);
@@ -805,6 +822,7 @@ app.post('/admin/associados/:id/excluir', (req: Request, res: Response) => {
   if (index !== -1) {
     const nome = associados[index].nome;
     associados.splice(index, 1);
+    await deleteAssociado(id);
     persistDataStore();
     addFlash(req, `Associado ${nome} removido do quadro.`, 'warning');
   }
@@ -1054,8 +1072,9 @@ app.post('/admin/comunicacao/enviar', (req: Request, res: Response) => {
 });
 
 // 6. Conteúdo do Portal
-app.get('/admin/conteudo', (req: Request, res: Response) => {
+app.get('/admin/conteudo', async (req: Request, res: Response) => {
   if (!requireAdmin(req, res)) return;
+  await refreshPostgresData();
 
   res.render('admin/conteudo', {
     title: 'Conteúdo do Portal - Gestão ASSGA',
@@ -1148,26 +1167,28 @@ app.post('/admin/conteudo/momento/:id/excluir', (req: Request, res: Response) =>
   res.redirect('/admin/conteudo');
 });
 
-app.post('/admin/conteudo/noticia/novo', (req: Request, res: Response) => {
+app.post('/admin/conteudo/noticia/novo', async (req: Request, res: Response) => {
   if (!requireAdmin(req, res)) return;
 
   const { titulo, conteudo, imagem, data } = req.body;
 
-  noticias.unshift({
+  const novaNoticia = {
     id: Date.now(),
     titulo: String(titulo || 'Nova notícia ASSGA').trim(),
     conteudo: String(conteudo || 'Texto da notícia em destaque.').trim(),
     imagem: String(imagem || '/imagens/foto1.jpg').trim(),
     data: String(data || new Date().toLocaleDateString('pt-BR')),
     destaque: true,
-  });
+  };
+  noticias.unshift(novaNoticia);
+  await saveNoticia(novaNoticia);
   persistDataStore();
 
   addFlash(req, 'Notícia em destaque publicada com sucesso!', 'success');
   res.redirect('/admin/conteudo');
 });
 
-app.post('/admin/conteudo/noticia/:id/excluir', (req: Request, res: Response) => {
+app.post('/admin/conteudo/noticia/:id/excluir', async (req: Request, res: Response) => {
   if (!requireAdmin(req, res)) return;
 
   const id = Number(req.params.id);
@@ -1176,6 +1197,7 @@ app.post('/admin/conteudo/noticia/:id/excluir', (req: Request, res: Response) =>
   if (index !== -1) {
     const titulo = noticias[index].titulo;
     noticias.splice(index, 1);
+    await deleteNoticia(id);
     persistDataStore();
     addFlash(req, `Notícia "${titulo}" removida do destaque.`, 'warning');
   }
@@ -1196,7 +1218,6 @@ app.get('/admin/eventos', (req: Request, res: Response) => {
     totalMensalidades: mensalidades.length,
     totalCarteirinhas: carteirinhas.length,
     totalEventos: eventos.length,
-    eventos,
   });
 });
 
