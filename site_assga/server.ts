@@ -79,12 +79,19 @@ async function persistPortalData(): Promise<void> {
 
 function loadPersistedData() {
   try {
-    if (!fs.existsSync(dataStorePath)) {
+    const seedDataPath = path.join(appRoot, 'data', 'assga-data.json');
+    const sourcePath = fs.existsSync(dataStorePath)
+      ? dataStorePath
+      : isServerless && fs.existsSync(seedDataPath)
+        ? seedDataPath
+        : dataStorePath;
+
+    if (!fs.existsSync(sourcePath)) {
       persistDataStore();
       return;
     }
 
-    const raw = fs.readFileSync(dataStorePath, 'utf8');
+    const raw = fs.readFileSync(sourcePath, 'utf8');
     if (!raw.trim()) {
       persistDataStore();
       return;
@@ -131,6 +138,10 @@ function loadPersistedData() {
       for (const [collection, value] of Object.entries(parsed.apiData)) {
         memoryDataStore.set(collection, value);
       }
+    }
+
+    if (sourcePath !== dataStorePath) {
+      persistDataStore();
     }
   } catch (error) {
     console.warn('Não foi possível carregar os dados persistidos, mantendo o estado atual:', error);

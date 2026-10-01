@@ -36,7 +36,16 @@
   "modalidades": [],
   "eventos": [],
   "capitulosEstatuto": [],
-  "noticias": [],
+  "noticias": [
+    {
+      "id": 1790869153807,
+      "titulo": "josgo",
+      "conteudo": "FOTO",
+      "imagem": "https://cptstatic.s3.amazonaws.com/imagens/enviadas/materias/materia28471/fotografia-cpt.jpg",
+      "data": "01/10/2026",
+      "destaque": true
+    }
+  ],
   "momentosAssga": [],
   "contatos": [],
   "voluntarios": [],
