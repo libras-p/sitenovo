@@ -1,4 +1,14 @@
-// In-memory data store replicating PostgreSQL assga_data table
+import { Pool } from 'pg';
+
+const pool = process.env.DATABASE_URL
+  ? new Pool({
+      connectionString: process.env.DATABASE_URL,
+      ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : undefined,
+      max: 2,
+    })
+  : null;
+let tableReady;
+
 const memoryStore = new Map([
   ['config', {
     id: 1,
@@ -101,6 +111,31 @@ function collectionFromRequest(request) {
   return String(request.query?.collection || '').trim().toLowerCase();
 }
 
+async function ensureTable() {
+  if (!pool) return;
+  if (!tableReady) {
+    tableReady = pool.query(`
+      CREATE TABLE IF NOT EXISTS api_data_collections (
+        collection TEXT PRIMARY KEY,
+        payload JSONB NOT NULL,
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `).then(() => undefined).catch((error) => {
+      tableReady = undefined;
+      throw error;
+    });
+  }
+  await tableReady;
+}
+
+function publicPayload(collection, payload) {
+  if (collection === 'config' && payload && !Array.isArray(payload)) {
+    const { senha, ...publicConfig } = payload;
+    return publicConfig;
+  }
+  return payload;
+}
+
 export default async function handler(request, response) {
   const collection = collectionFromRequest(request);
 
@@ -114,19 +149,53 @@ export default async function handler(request, response) {
     return response.status(400).json({ error: 'Coleção inválida.' });
   }
 
-  if (request.method === 'GET') {
-    const payload = memoryStore.get(collection) ?? [];
-    if (collection === 'config' && payload && !Array.isArray(payload)) {
-      const { senha, ...publicConfig } = payload;
-      return response.status(200).json(publicConfig);
-    }
-    return response.status(200).json(payload);
+  if (!pool && (process.env.VERCEL || process.env.NETLIFY)) {
+    return response.status(503).json({ error: 'Banco de dados não configurado.' });
   }
 
-  if (request.method === 'POST') {
-    const payload = request.body;
-    memoryStore.set(collection, payload);
-    return response.status(200).json({ status: 'ok', collection });
+  try {
+    if (pool) {
+      await ensureTable();
+
+      if (request.method === 'GET') {
+        const fallback = memoryStore.get(collection) ?? [];
+        await pool.query(
+          `INSERT INTO api_data_collections (collection, payload)
+           VALUES ($1, $2::jsonb) ON CONFLICT (collection) DO NOTHING`,
+          [collection, JSON.stringify(fallback)],
+        );
+        const result = await pool.query(
+          'SELECT payload FROM api_data_collections WHERE collection = $1',
+          [collection],
+        );
+        return response.status(200).json(publicPayload(collection, result.rows[0].payload));
+      }
+
+      if (request.method === 'POST') {
+        const payload = request.body;
+        await pool.query(
+          `INSERT INTO api_data_collections (collection, payload, updated_at)
+           VALUES ($1, $2::jsonb, NOW())
+           ON CONFLICT (collection) DO UPDATE SET payload = EXCLUDED.payload, updated_at = NOW()`,
+          [collection, JSON.stringify(payload)],
+        );
+        memoryStore.set(collection, payload);
+        return response.status(200).json({ status: 'ok', collection });
+      }
+    }
+
+    if (request.method === 'GET') {
+      return response.status(200).json(publicPayload(collection, memoryStore.get(collection) ?? []));
+    }
+
+    if (request.method === 'POST') {
+      const payload = request.body;
+      memoryStore.set(collection, payload);
+      return response.status(200).json({ status: 'ok', collection });
+    }
+  } catch (error) {
+    console.error('Falha ao persistir dados da API:', error);
+    return response.status(503).json({ error: 'Banco de dados indisponível; os dados não foram salvos.' });
   }
 
   response.setHeader('Allow', 'GET, POST');

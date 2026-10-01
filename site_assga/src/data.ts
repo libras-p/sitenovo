@@ -176,3 +176,5 @@ export const parceirosApoiadores: ParceiroApoiador[] = [];
 export const momentosAssga: MomentoAssga[] = [];
 
 export const noticias: Noticia[] = [];
+
+export const apiData = new Map<string, unknown>();

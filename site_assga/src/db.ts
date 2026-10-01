@@ -1,5 +1,21 @@
 import { Pool } from 'pg';
-import { Associado, Noticia, associados, noticias } from './data.js';
+import {
+  Associado,
+  Noticia,
+  apiData,
+  associados,
+  carteirinhas,
+  capitulosEstatuto,
+  contatos,
+  eventos,
+  membrosDiretoria,
+  mensalidades,
+  modalidades,
+  momentosAssga,
+  noticias,
+  parceirosApoiadores,
+  voluntarios,
+} from './data.js';
 
 const connectionString = process.env.DATABASE_URL;
 export const databaseEnabled = Boolean(connectionString);
@@ -12,6 +28,41 @@ const pool = connectionString
       max: 5,
     })
   : null;
+
+const portalCollections: Record<string, unknown[]> = {
+  carteirinhas,
+  mensalidades,
+  membrosDiretoria,
+  modalidades,
+  eventos,
+  capitulosEstatuto,
+  momentosAssga,
+  contatos,
+  voluntarios,
+  parceirosApoiadores,
+};
+
+function writablePool(): Pool | null {
+  if (!pool) {
+    if (process.env.VERCEL || process.env.NETLIFY) {
+      throw new Error('DATABASE_URL é obrigatória para persistir dados em produção.');
+    }
+    return null;
+  }
+
+  if (!postgresHealthy) {
+    throw new Error('PostgreSQL indisponível; os dados não foram salvos.');
+  }
+
+  return pool;
+}
+
+function currentPortalState(): Record<string, unknown> {
+  return {
+    ...Object.fromEntries(Object.entries(portalCollections)),
+    apiData: Object.fromEntries(apiData),
+  };
+}
 
 function reportDatabaseFailure(error: unknown): void {
   postgresHealthy = false;
@@ -86,6 +137,20 @@ export async function initializePostgresData(): Promise<void> {
       destaque BOOLEAN NOT NULL DEFAULT TRUE
     )
     `);
+    await pool.query(`
+    CREATE TABLE IF NOT EXISTS portal_state (
+      id SMALLINT PRIMARY KEY CHECK (id = 1),
+      payload JSONB NOT NULL DEFAULT '{}'::jsonb,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+    `);
+    await pool.query(`
+    CREATE TABLE IF NOT EXISTS api_data_collections (
+      collection TEXT PRIMARY KEY,
+      payload JSONB NOT NULL,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+    `);
 
     const associadosCount = await pool.query<{ count: string }>('SELECT COUNT(*)::text AS count FROM associados');
     if (Number(associadosCount.rows[0].count) === 0 && associados.length > 0) {
@@ -96,6 +161,11 @@ export async function initializePostgresData(): Promise<void> {
     if (Number(noticiasCount.rows[0].count) === 0 && noticias.length > 0) {
       for (const noticia of noticias) await saveNoticia(noticia);
     }
+
+    await pool.query(
+      `INSERT INTO portal_state (id, payload) VALUES (1, $1::jsonb) ON CONFLICT (id) DO NOTHING`,
+      [JSON.stringify(currentPortalState())],
+    );
 
     await refreshPostgresData();
   } catch (error) {
@@ -112,14 +182,63 @@ export async function refreshPostgresData(): Promise<void> {
 
     const noticiasRows = await pool.query('SELECT * FROM noticias ORDER BY id DESC');
     noticias.splice(0, noticias.length, ...noticiasRows.rows.map(toNoticia));
+
+    const portalState = await pool.query<{ payload: Record<string, unknown> }>(
+      'SELECT payload FROM portal_state WHERE id = 1',
+    );
+    const savedCollections = portalState.rows[0]?.payload;
+    if (savedCollections) {
+      for (const [collection, values] of Object.entries(portalCollections)) {
+        const savedValues = savedCollections[collection];
+        if (Array.isArray(savedValues)) {
+          values.splice(0, values.length, ...savedValues);
+        }
+      }
+
+      const savedApiData = savedCollections.apiData;
+      if (savedApiData && typeof savedApiData === 'object' && !Array.isArray(savedApiData)) {
+        apiData.clear();
+        for (const [collection, value] of Object.entries(savedApiData)) {
+          apiData.set(collection, value);
+        }
+      }
+    }
   } catch (error) {
     reportDatabaseFailure(error);
   }
 }
 
+export async function savePortalState(): Promise<void> {
+  const database = writablePool();
+  if (!database) return;
+
+  try {
+    await database.query(
+      `INSERT INTO portal_state (id, payload, updated_at)
+       VALUES (1, $1::jsonb, NOW())
+       ON CONFLICT (id) DO UPDATE SET payload = EXCLUDED.payload, updated_at = NOW()`,
+      [JSON.stringify(currentPortalState())],
+    );
+  } catch (error) {
+    reportDatabaseFailure(error);
+    throw error;
+  }
+}
+
+export async function clearPostgresData(): Promise<void> {
+  const database = writablePool();
+  if (!database) return;
+
+  await database.query('DELETE FROM associados');
+  await database.query('DELETE FROM noticias');
+  await database.query('DELETE FROM api_data_collections');
+  await savePortalState();
+}
+
 export async function saveAssociado(associado: Associado): Promise<void> {
-  if (!pool || !postgresHealthy) return;
-  await pool.query(
+  const database = writablePool();
+  if (!database) return;
+  await database.query(
     `INSERT INTO associados (
       id, matricula, nome, email, telefone, cpf, rg, data_nascimento,
       tipo_sanguineo, data_filiacao, categoria, status, validade_carteirinha,
@@ -143,13 +262,15 @@ export async function saveAssociado(associado: Associado): Promise<void> {
 }
 
 export async function deleteAssociado(id: number): Promise<void> {
-  if (!pool || !postgresHealthy) return;
-  await pool.query('DELETE FROM associados WHERE id = $1', [id]);
+  const database = writablePool();
+  if (!database) return;
+  await database.query('DELETE FROM associados WHERE id = $1', [id]);
 }
 
 export async function saveNoticia(noticia: Noticia): Promise<void> {
-  if (!pool || !postgresHealthy) return;
-  await pool.query(
+  const database = writablePool();
+  if (!database) return;
+  await database.query(
     `INSERT INTO noticias (id, titulo, conteudo, imagem, data, destaque)
      VALUES ($1, $2, $3, $4, $5, $6)
      ON CONFLICT (id) DO UPDATE SET
@@ -160,6 +281,7 @@ export async function saveNoticia(noticia: Noticia): Promise<void> {
 }
 
 export async function deleteNoticia(id: number): Promise<void> {
-  if (!pool || !postgresHealthy) return;
-  await pool.query('DELETE FROM noticias WHERE id = $1', [id]);
+  const database = writablePool();
+  if (!database) return;
+  await database.query('DELETE FROM noticias WHERE id = $1', [id]);
 }

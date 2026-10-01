@@ -7,6 +7,7 @@ import cookieSession from 'cookie-session';
 import { GoogleGenAI } from '@google/genai';
 import {
   assgaConfig,
+  apiData,
   associados,
   carteirinhas,
   mensalidades,
@@ -27,10 +28,12 @@ import {
   databaseEnabled,
   deleteAssociado,
   deleteNoticia,
+  clearPostgresData,
   initializePostgresData,
   refreshPostgresData,
   saveAssociado,
   saveNoticia,
+  savePortalState,
 } from './src/db.js';
 
 const app = express();
@@ -61,11 +64,17 @@ function persistDataStore() {
       contatos,
       voluntarios,
       parceirosApoiadores,
+      apiData: Object.fromEntries(memoryDataStore),
     };
     fs.writeFileSync(dataStorePath, JSON.stringify(payload, null, 2), 'utf8');
   } catch (error) {
     console.warn('Não foi possível persistir os dados no armazenamento local:', error);
   }
+}
+
+async function persistPortalData(): Promise<void> {
+  persistDataStore();
+  await savePortalState();
 }
 
 function loadPersistedData() {
@@ -118,12 +127,17 @@ function loadPersistedData() {
     if (parsed.parceirosApoiadores && Array.isArray(parsed.parceirosApoiadores)) {
       parceirosApoiadores.splice(0, parceirosApoiadores.length, ...parsed.parceirosApoiadores);
     }
+    if (parsed.apiData && typeof parsed.apiData === 'object' && !Array.isArray(parsed.apiData)) {
+      for (const [collection, value] of Object.entries(parsed.apiData)) {
+        memoryDataStore.set(collection, value);
+      }
+    }
   } catch (error) {
     console.warn('Não foi possível carregar os dados persistidos, mantendo o estado atual:', error);
   }
 }
 
-function resetAllPortalData() {
+async function resetAllPortalData(): Promise<void> {
   associados.splice(0, associados.length);
   mensalidades.splice(0, mensalidades.length);
   carteirinhas.splice(0, carteirinhas.length);
@@ -137,11 +151,7 @@ function resetAllPortalData() {
   voluntarios.splice(0, voluntarios.length);
   parceirosApoiadores.splice(0, parceirosApoiadores.length);
   persistDataStore();
-}
-
-loadPersistedData();
-if (databaseEnabled) {
-  await initializePostgresData();
+  await clearPostgresData();
 }
 
 try {
@@ -430,7 +440,7 @@ app.get('/pagamento', (req: Request, res: Response) => {
   });
 });
 
-app.post('/pagamento', (req: Request, res: Response) => {
+app.post('/pagamento', async (req: Request, res: Response) => {
   const { identificador, mes_referencia, observacoes } = req.body;
   
   // Find associado if matches matricula or cpf
@@ -451,6 +461,7 @@ app.post('/pagamento', (req: Request, res: Response) => {
       metodo: 'PIX',
       observacoes: observacoes ? String(observacoes) : undefined,
     });
+    await persistPortalData();
     addFlash(req, `Comprovante registrado com sucesso para ${foundAssoc.nome}! Mensalidade confirmada.`, 'success');
     if (res.locals.user) {
       return res.redirect('/area-associado');
@@ -593,10 +604,10 @@ app.get('/admin/logout', (req: Request, res: Response) => {
   res.redirect('/admin/login');
 });
 
-app.post('/admin/resetar-dados', (req: Request, res: Response) => {
+app.post('/admin/resetar-dados', async (req: Request, res: Response) => {
   if (!requireAdmin(req, res)) return;
 
-  resetAllPortalData();
+  await resetAllPortalData();
   addFlash(req, 'Todos os dados do portal foram apagados com sucesso.', 'warning');
   return res.redirect('/admin');
 });
@@ -749,7 +760,7 @@ app.post('/admin/associados/novo', upload.single('foto'), async (req: Request, r
     via: 1,
     ativa: true,
   });
-  persistDataStore();
+  await persistPortalData();
 
   addFlash(req, `Associado ${novoAssociado.nome} (${novaMatricula}) cadastrado com sucesso! Carteirinha digital gerada.`, 'success');
   res.redirect('/admin/associados');
@@ -784,7 +795,7 @@ app.post('/admin/associados/:id/editar', upload.single('foto'), async (req: Requ
     }
 
     await saveAssociado(assoc);
-    persistDataStore();
+    await persistPortalData();
     addFlash(req, `Dados de ${assoc.nome} atualizados com sucesso!`, 'success');
   } else {
     addFlash(req, 'Associado não encontrado.', 'danger');
@@ -807,7 +818,7 @@ app.post('/admin/associados/:id/status', async (req: Request, res: Response) => 
 
     const statusType = assoc.status === 'Ativo' ? 'success' : assoc.status === 'Pendente' ? 'warning' : 'danger';
     await saveAssociado(assoc);
-    persistDataStore();
+    await persistPortalData();
     addFlash(req, `Status de ${assoc.nome} alterado para ${assoc.status}!`, statusType);
   }
 
@@ -825,7 +836,7 @@ app.post('/admin/associados/:id/excluir', async (req: Request, res: Response) =>
     const nome = associados[index].nome;
     associados.splice(index, 1);
     await deleteAssociado(id);
-    persistDataStore();
+    await persistPortalData();
     addFlash(req, `Associado ${nome} removido do quadro.`, 'warning');
   }
 
@@ -871,7 +882,7 @@ app.get('/admin/mensalidades', (req: Request, res: Response) => {
 });
 
 // Novo Lançamento de Mensalidade
-app.post('/admin/mensalidades/novo', (req: Request, res: Response) => {
+app.post('/admin/mensalidades/novo', async (req: Request, res: Response) => {
   if (!requireAdmin(req, res)) return;
 
   const { associado_id, mes_referencia, ano_referencia, valor, metodo, status, observacoes } = req.body;
@@ -888,14 +899,14 @@ app.post('/admin/mensalidades/novo', (req: Request, res: Response) => {
     data_pagamento: status === 'Pago' ? new Date().toISOString().split('T')[0] : undefined,
     observacoes: observacoes ? String(observacoes) : undefined,
   });
-  persistDataStore();
+  await persistPortalData();
 
   addFlash(req, 'Lançamento de mensalidade registrado com sucesso!', 'success');
   res.redirect('/admin/mensalidades');
 });
 
 // Alterar Status da Mensalidade
-app.post('/admin/mensalidades/:id/status', (req: Request, res: Response) => {
+app.post('/admin/mensalidades/:id/status', async (req: Request, res: Response) => {
   if (!requireAdmin(req, res)) return;
 
   const id = Number(req.params.id);
@@ -909,7 +920,7 @@ app.post('/admin/mensalidades/:id/status', (req: Request, res: Response) => {
       m.data_pagamento = undefined;
     }
     const statusType = m.status === 'Pago' ? 'success' : m.status === 'Pendente' ? 'warning' : 'danger';
-    persistDataStore();
+    await persistPortalData();
     addFlash(req, `Status da mensalidade atualizado para ${m.status}!`, statusType);
   }
 
@@ -917,7 +928,7 @@ app.post('/admin/mensalidades/:id/status', (req: Request, res: Response) => {
 });
 
 // Excluir Mensalidade
-app.post('/admin/mensalidades/:id/excluir', (req: Request, res: Response) => {
+app.post('/admin/mensalidades/:id/excluir', async (req: Request, res: Response) => {
   if (!requireAdmin(req, res)) return;
 
   const id = Number(req.params.id);
@@ -926,14 +937,14 @@ app.post('/admin/mensalidades/:id/excluir', (req: Request, res: Response) => {
   if (index !== -1) {
     const valor = mensalidades[index].valor;
     mensalidades.splice(index, 1);
-    persistDataStore();
+    await persistPortalData();
     addFlash(req, `Mensalidade de R$ ${Number(valor).toFixed(2).replace('.', ',')} removida com sucesso.`, 'warning');
   }
 
   res.redirect('/admin/mensalidades');
 });
 
-app.delete('/admin/mensalidades/:id/excluir', (req: Request, res: Response) => {
+app.delete('/admin/mensalidades/:id/excluir', async (req: Request, res: Response) => {
   if (!requireAdmin(req, res)) return;
 
   const id = Number(req.params.id);
@@ -942,7 +953,7 @@ app.delete('/admin/mensalidades/:id/excluir', (req: Request, res: Response) => {
   if (index !== -1) {
     const valor = mensalidades[index].valor;
     mensalidades.splice(index, 1);
-    persistDataStore();
+    await persistPortalData();
     addFlash(req, `Mensalidade de R$ ${Number(valor).toFixed(2).replace('.', ',')} removida com sucesso.`, 'warning');
   }
 
@@ -968,7 +979,7 @@ app.get('/admin/carteirinhas', (req: Request, res: Response) => {
 });
 
 // Alternar Status da Carteirinha (Ativa / Inativa)
-app.post('/admin/carteirinhas/:id/toggle', (req: Request, res: Response) => {
+app.post('/admin/carteirinhas/:id/toggle', async (req: Request, res: Response) => {
   if (!requireAdmin(req, res)) return;
 
   const id = Number(req.params.id);
@@ -976,7 +987,7 @@ app.post('/admin/carteirinhas/:id/toggle', (req: Request, res: Response) => {
 
   if (cart) {
     cart.ativa = !cart.ativa;
-    persistDataStore();
+    await persistPortalData();
     addFlash(req, `Carteirinha ${cart.codigo_autenticacao} ${cart.ativa ? 'ativada' : 'suspensa'} com sucesso!`, 'info');
   }
 
@@ -984,7 +995,7 @@ app.post('/admin/carteirinhas/:id/toggle', (req: Request, res: Response) => {
 });
 
 // Excluir Carteirinha
-app.post('/admin/carteirinhas/:id/excluir', (req: Request, res: Response) => {
+app.post('/admin/carteirinhas/:id/excluir', async (req: Request, res: Response) => {
   if (!requireAdmin(req, res)) return;
 
   const id = Number(req.params.id);
@@ -993,7 +1004,7 @@ app.post('/admin/carteirinhas/:id/excluir', (req: Request, res: Response) => {
   if (index !== -1) {
     const codigo = carteirinhas[index].codigo_autenticacao;
     carteirinhas.splice(index, 1);
-    persistDataStore();
+    await persistPortalData();
     addFlash(req, `Carteirinha ${codigo} removida com sucesso.`, 'warning');
   }
 
@@ -1001,7 +1012,7 @@ app.post('/admin/carteirinhas/:id/excluir', (req: Request, res: Response) => {
 });
 
 // Renovar Carteirinha (+1 Ano)
-app.post('/admin/carteirinhas/:id/renovar', (req: Request, res: Response) => {
+app.post('/admin/carteirinhas/:id/renovar', async (req: Request, res: Response) => {
   if (!requireAdmin(req, res)) return;
 
   const id = Number(req.params.id);
@@ -1019,7 +1030,7 @@ app.post('/admin/carteirinhas/:id/renovar', (req: Request, res: Response) => {
       assoc.status = 'Ativo';
     }
 
-    persistDataStore();
+    await persistPortalData();
     addFlash(req, `Validade da carteirinha renovada com sucesso até 31/12/${novoAno}!`, 'success');
   }
 
@@ -1093,7 +1104,7 @@ app.get('/admin/conteudo', async (req: Request, res: Response) => {
   });
 });
 
-app.post('/admin/conteudo/parceiro/novo', (req: Request, res: Response) => {
+app.post('/admin/conteudo/parceiro/novo', async (req: Request, res: Response) => {
   if (!requireAdmin(req, res)) return;
 
   const nome = String(req.body.nome || '').trim();
@@ -1112,13 +1123,13 @@ app.post('/admin/conteudo/parceiro/novo', (req: Request, res: Response) => {
     imagem,
     ordem: parceirosApoiadores.length + 1,
   });
-  persistDataStore();
+  await persistPortalData();
 
   addFlash(req, 'Parceiro/apoiador cadastrado com sucesso!', 'success');
   res.redirect('/admin/conteudo');
 });
 
-app.post('/admin/conteudo/parceiro/:id/excluir', (req: Request, res: Response) => {
+app.post('/admin/conteudo/parceiro/:id/excluir', async (req: Request, res: Response) => {
   if (!requireAdmin(req, res)) return;
 
   const id = Number(req.params.id);
@@ -1127,14 +1138,14 @@ app.post('/admin/conteudo/parceiro/:id/excluir', (req: Request, res: Response) =
   if (index !== -1) {
     const nome = parceirosApoiadores[index].nome;
     parceirosApoiadores.splice(index, 1);
-    persistDataStore();
+    await persistPortalData();
     addFlash(req, `Parceiro/apoiador "${nome}" removido.`, 'warning');
   }
 
   res.redirect('/admin/conteudo');
 });
 
-app.post('/admin/conteudo/momento/novo', (req: Request, res: Response) => {
+app.post('/admin/conteudo/momento/novo', async (req: Request, res: Response) => {
   if (!requireAdmin(req, res)) return;
 
   const { titulo, subtitulo, badge, imagem } = req.body;
@@ -1147,13 +1158,13 @@ app.post('/admin/conteudo/momento/novo', (req: Request, res: Response) => {
     badge: String(badge || 'Comunidade & Liderança').trim(),
     ordem: momentosAssga.length + 1,
   });
-  persistDataStore();
+  await persistPortalData();
 
   addFlash(req, 'Novo momento da ASSGA adicionado ao portal!', 'success');
   res.redirect('/admin/conteudo');
 });
 
-app.post('/admin/conteudo/momento/:id/excluir', (req: Request, res: Response) => {
+app.post('/admin/conteudo/momento/:id/excluir', async (req: Request, res: Response) => {
   if (!requireAdmin(req, res)) return;
 
   const id = Number(req.params.id);
@@ -1162,7 +1173,7 @@ app.post('/admin/conteudo/momento/:id/excluir', (req: Request, res: Response) =>
   if (index !== -1) {
     const titulo = momentosAssga[index].titulo;
     momentosAssga.splice(index, 1);
-    persistDataStore();
+    await persistPortalData();
     addFlash(req, `Momento "${titulo}" removido do portal.`, 'warning');
   }
 
@@ -1184,7 +1195,7 @@ app.post('/admin/conteudo/noticia/novo', async (req: Request, res: Response) => 
   };
   noticias.unshift(novaNoticia);
   await saveNoticia(novaNoticia);
-  persistDataStore();
+  await persistPortalData();
 
   addFlash(req, 'Notícia em destaque publicada com sucesso!', 'success');
   res.redirect('/admin/conteudo');
@@ -1200,7 +1211,7 @@ app.post('/admin/conteudo/noticia/:id/excluir', async (req: Request, res: Respon
     const titulo = noticias[index].titulo;
     noticias.splice(index, 1);
     await deleteNoticia(id);
-    persistDataStore();
+    await persistPortalData();
     addFlash(req, `Notícia "${titulo}" removida do destaque.`, 'warning');
   }
 
@@ -1224,7 +1235,7 @@ app.get('/admin/eventos', (req: Request, res: Response) => {
 });
 
 // Novo Evento
-app.post('/admin/eventos/novo', (req: Request, res: Response) => {
+app.post('/admin/eventos/novo', async (req: Request, res: Response) => {
   if (!requireAdmin(req, res)) return;
 
   const { titulo, tipo, data_inicio, local, descricao, imagem_url, libras_disponivel } = req.body;
@@ -1241,14 +1252,14 @@ app.post('/admin/eventos/novo', (req: Request, res: Response) => {
     destaque: true,
     ativo: true,
   });
-  persistDataStore();
+  await persistPortalData();
 
   addFlash(req, 'Novo evento cadastrado com sucesso no portal!', 'success');
   res.redirect('/admin/eventos');
 });
 
 // Excluir Evento
-app.post('/admin/eventos/:id/excluir', (req: Request, res: Response) => {
+app.post('/admin/eventos/:id/excluir', async (req: Request, res: Response) => {
   if (!requireAdmin(req, res)) return;
 
   const id = Number(req.params.id);
@@ -1257,7 +1268,7 @@ app.post('/admin/eventos/:id/excluir', (req: Request, res: Response) => {
   if (index !== -1) {
     const tit = eventos[index].titulo;
     eventos.splice(index, 1);
-    persistDataStore();
+    await persistPortalData();
     addFlash(req, `Evento "${tit}" excluído com sucesso.`, 'warning');
   }
 
@@ -1281,26 +1292,31 @@ app.get('/api/welcome', (req: Request, res: Response) => {
 });
 
 // 15. In-memory data store replicating api/data.js
-const memoryDataStore = new Map<string, any>([
-  ['config', assgaConfig],
-  ['noticias', noticias],
-  ['eventos', eventos],
-  ['diretoria', membrosDiretoria],
-  ['estatuto', capitulosEstatuto],
-  ['historia', {
+const memoryDataStore = apiData as Map<string, any>;
+memoryDataStore.clear();
+memoryDataStore.set('config', assgaConfig);
+memoryDataStore.set('noticias', noticias);
+memoryDataStore.set('eventos', eventos);
+memoryDataStore.set('diretoria', membrosDiretoria);
+memoryDataStore.set('estatuto', capitulosEstatuto);
+memoryDataStore.set('historia', {
     id: 1,
     titulo: 'Nossa História',
     subtitulo: 'Conheça a trajetória da ASSGA, desde sua fundação até os dias atuais.',
     data: 'Fundada em 2019 / Registro em 2024',
     imagem: '/imagens/Assga_foto.jpg',
     texto: 'A ASSGA - Associação dos Surdos foi fundada com o objetivo de promover o esporte, a integração social e os direitos linguísticos em LIBRAS.',
-  }],
-  ['slider', [
+});
+memoryDataStore.set('slider', [
     { imagem: '/imagens/foto1.jpg', texto: 'ASSGA - Associação Desportiva' },
     { imagem: '/imagens/foto2.jpg', texto: 'Esporte e integração da ASSGA' },
     { imagem: '/imagens/foto3-1.jpg', texto: 'Futsal e atividades esportivas ASSGA' }
-  ]]
 ]);
+
+loadPersistedData();
+if (databaseEnabled) {
+  await initializePostgresData();
+}
 
 app.get('/api/data', (req: Request, res: Response) => {
   const collection = String(req.query?.collection || '').trim().toLowerCase();
@@ -1317,16 +1333,17 @@ app.get('/api/data', (req: Request, res: Response) => {
   return res.json(data);
 });
 
-app.post('/api/data', (req: Request, res: Response) => {
+app.post('/api/data', async (req: Request, res: Response) => {
   const collection = String(req.query?.collection || '').trim().toLowerCase();
   if (!collection) {
     return res.status(400).json({ error: 'Parâmetro collection é obrigatório.' });
   }
   memoryDataStore.set(collection, req.body);
+  await persistPortalData();
   res.json({ status: 'ok', collection });
 });
 
-app.post('/contato', (req: Request, res: Response) => {
+app.post('/contato', async (req: Request, res: Response) => {
   const nome = String(req.body?.nome || '').trim();
   const email = String(req.body?.email || '').trim();
   const telefone = String(req.body?.telefone || '').trim();
@@ -1345,13 +1362,13 @@ app.post('/contato', (req: Request, res: Response) => {
     mensagem,
     criado_em: new Date().toISOString(),
   });
-  persistDataStore();
+  await persistPortalData();
 
   addFlash(req, 'Mensagem enviada com sucesso. Nossa equipe entrará em contato em breve.', 'success');
   res.redirect('/');
 });
 
-app.post('/voluntario', (req: Request, res: Response) => {
+app.post('/voluntario', async (req: Request, res: Response) => {
   const nome = String(req.body?.nome || '').trim();
   const email = String(req.body?.email || '').trim();
   const telefone = String(req.body?.telefone || '').trim();
@@ -1372,13 +1389,13 @@ app.post('/voluntario', (req: Request, res: Response) => {
     mensagem,
     criado_em: new Date().toISOString(),
   });
-  persistDataStore();
+  await persistPortalData();
 
   addFlash(req, 'Sua vontade de ajudar foi registrada com sucesso. Em breve a ASSGA entrará em contato.', 'success');
   res.redirect('/');
 });
 
-app.post('/admin/contatos/:id/excluir', (req: Request, res: Response) => {
+app.post('/admin/contatos/:id/excluir', async (req: Request, res: Response) => {
   if (!requireAdmin(req, res)) return;
 
   const id = Number(req.params.id);
@@ -1387,14 +1404,14 @@ app.post('/admin/contatos/:id/excluir', (req: Request, res: Response) => {
   if (index !== -1) {
     const nome = contatos[index].nome;
     contatos.splice(index, 1);
-    persistDataStore();
+    await persistPortalData();
     addFlash(req, `Mensagem de contato de ${nome} removida com sucesso.`, 'warning');
   }
 
   return res.redirect('/admin/comunicacao');
 });
 
-app.post('/admin/voluntarios/:id/excluir', (req: Request, res: Response) => {
+app.post('/admin/voluntarios/:id/excluir', async (req: Request, res: Response) => {
   if (!requireAdmin(req, res)) return;
 
   const id = Number(req.params.id);
@@ -1403,7 +1420,7 @@ app.post('/admin/voluntarios/:id/excluir', (req: Request, res: Response) => {
   if (index !== -1) {
     const nome = voluntarios[index].nome;
     voluntarios.splice(index, 1);
-    persistDataStore();
+    await persistPortalData();
     addFlash(req, `Registro de voluntário de ${nome} removido com sucesso.`, 'warning');
   }
 
