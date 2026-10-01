@@ -1,6 +1,25 @@
 {
   "associados": [
     {
+      "id": 1790875232448,
+      "matricula": "ASG-2026-002",
+      "nome": "MARCIO NASCIMENTO",
+      "categoria": "Sócio Atleta",
+      "cpf": "081.996.574-05",
+      "rg": "200000",
+      "data_nascimento": "2000-01-01",
+      "email": "marcio.nascimento.081@ufrn.edu.br",
+      "telefone": "(84) 99123-7714",
+      "identidade_surda": "Surdo(a)",
+      "tipo_sanguineo": "O+",
+      "data_filiacao": "2026-10-01",
+      "status": "Ativo",
+      "validade_carteirinha": "2026-12-31",
+      "cidade": "São Gonçalo do Amarante",
+      "estado": "RN",
+      "foto_url": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80"
+    },
+    {
       "id": 1790860798354,
       "matricula": "ASG-2026-001",
       "nome": "MARCIO NASCIMENTO",
@@ -23,6 +42,15 @@
   "mensalidades": [],
   "carteirinhas": [
     {
+      "id": 1790875232448,
+      "associado_id": 1790875232448,
+      "codigo_autenticacao": "ASSGA-2026-002-AUTH-O0KOED",
+      "data_emissao": "2026-10-01",
+      "data_validade": "2026-12-31",
+      "via": 1,
+      "ativa": true
+    },
+    {
       "id": 1790860798354,
       "associado_id": 1790860798354,
       "codigo_autenticacao": "ASSGA-2026-001-AUTH-DFH6TD",
@@ -37,6 +65,14 @@
   "eventos": [],
   "capitulosEstatuto": [],
   "noticias": [
+    {
+      "id": 1790878105691,
+      "titulo": "futsal",
+      "conteudo": "futsal esportes",
+      "imagem": "https://s2-ge.glbimg.com/BNq-vJlrUSsqSnC9vXWjq1kjhmY=/0x0:1024x641/984x0/smart/filters:strip_icc()/i.s3.glbimg.com/v1/AUTH_bc8228b6673f488aa253bbcb03c80ec5/internal_photos/bs/2021/y/D/5zkpFAQKaGWVSoBnR8hw/gettyimages-1339644999.jpg",
+      "data": "01/10/2026",
+      "destaque": true
+    },
     {
       "id": 1790869153807,
       "titulo": "josgo",

@@ -46,6 +46,7 @@ const dataStorePath = isServerless
 const uploadDir = isServerless
   ? '/tmp/assga-uploads'
   : path.join(appRoot, 'public', 'imagens', 'uploads');
+const temporaryPersistenceRequests = new WeakSet<Request>();
 
 function persistDataStore() {
   try {
@@ -72,9 +73,17 @@ function persistDataStore() {
   }
 }
 
-async function persistPortalData(): Promise<void> {
+async function persistPortalData(req: Request): Promise<boolean> {
   persistDataStore();
-  await savePortalState();
+  try {
+    await savePortalState();
+    return true;
+  } catch (error) {
+    if (!isServerless) throw error;
+    console.warn('Dados gravados apenas temporariamente em /tmp; configure o PostgreSQL para persistência durável.', error);
+    temporaryPersistenceRequests.add(req);
+    return false;
+  }
 }
 
 function loadPersistedData() {
@@ -234,6 +243,11 @@ app.use((req: Request, res: Response, next) => {
 
 // Helper flash messages
 function addFlash(req: Request, text: string, type: 'success' | 'danger' | 'warning' | 'info' = 'info') {
+  if (temporaryPersistenceRequests.has(req)) {
+    text = `${text} Aviso: alteração salva apenas temporariamente; pode desaparecer e ainda não foi sincronizada com o banco.`;
+    type = 'warning';
+    temporaryPersistenceRequests.delete(req);
+  }
   if (!req.session!.messages) req.session!.messages = [];
   req.session!.messages.push({ text, type });
 }
@@ -294,7 +308,7 @@ function findAssociadoPorIdentificador(identificador: string): Associado | undef
 app.get('/', async (req: Request, res: Response) => {
   await refreshPostgresData();
   const associadosEmDestaque = associados
-    .filter(a => a.status === 'Ativo')
+    .filter(a => a.status === 'Ativo' && a.exibir_no_site === true)
     .slice(0, 4);
 
   res.render('portal/home', {
@@ -372,7 +386,7 @@ app.get('/esportiva', (req: Request, res: Response) => {
   res.render('portal/esportiva', {
     title: 'Departamento Esportivo - ASSGA',
     activePage: 'esportiva',
-    modalidades,
+    modalidades: modalidades.filter(modalidade => modalidade.ativa),
   });
 });
 
@@ -381,7 +395,7 @@ app.get('/eventos', (req: Request, res: Response) => {
   res.render('portal/evento', {
     title: 'Agenda de Eventos - ASSGA',
     activePage: 'evento',
-    eventos,
+    eventos: eventos.filter(evento => evento.ativo),
   });
 });
 
@@ -472,7 +486,7 @@ app.post('/pagamento', async (req: Request, res: Response) => {
       metodo: 'PIX',
       observacoes: observacoes ? String(observacoes) : undefined,
     });
-    await persistPortalData();
+    await persistPortalData(req);
     addFlash(req, `Comprovante registrado com sucesso para ${foundAssoc.nome}! Mensalidade confirmada.`, 'success');
     if (res.locals.user) {
       return res.redirect('/area-associado');
@@ -752,10 +766,17 @@ app.post('/admin/associados/novo', upload.single('foto'), async (req: Request, r
     cidade: String(cidade || 'São Gonçalo do Amarante'),
     estado: 'RN',
     foto_url: fotoUrlFinal,
+    exibir_no_site: req.body.exibir_no_site === 'on',
   };
 
+  let associadoSalvoNoBanco = false;
+  try {
+    associadoSalvoNoBanco = await saveAssociado(novoAssociado);
+  } catch (error) {
+    console.error('Não foi possível concluir o cadastro do associado:', error);
+  }
+
   associados.unshift(novoAssociado);
-  await saveAssociado(novoAssociado);
   persistDataStore();
 
   // Gera carteirinha oficial vinculada
@@ -771,9 +792,16 @@ app.post('/admin/associados/novo', upload.single('foto'), async (req: Request, r
     via: 1,
     ativa: true,
   });
-  await persistPortalData();
+  const estadoSalvo = await persistPortalData(req);
 
-  addFlash(req, `Associado ${novoAssociado.nome} (${novaMatricula}) cadastrado com sucesso! Carteirinha digital gerada.`, 'success');
+  const dadosSalvosNoBanco = databaseEnabled && associadoSalvoNoBanco && estadoSalvo;
+  if (isServerless && !dadosSalvosNoBanco) {
+    temporaryPersistenceRequests.delete(req);
+    addFlash(req, `Cadastro recebido: ${novoAssociado.nome} (${novaMatricula}). Salvo apenas temporariamente em /tmp; pode desaparecer e não foi sincronizado com o banco.`, 'warning');
+  } else {
+    const armazenamento = dadosSalvosNoBanco ? 'banco de dados' : 'armazenamento local';
+    addFlash(req, `Cadastro concluído: ${novoAssociado.nome} (${novaMatricula}). Dados salvos no ${armazenamento}; carteirinha digital gerada.`, 'success');
+  }
   res.redirect('/admin/associados');
 });
 
@@ -797,6 +825,7 @@ app.post('/admin/associados/:id/editar', upload.single('foto'), async (req: Requ
     assoc.cidade = req.body.cidade || assoc.cidade;
     assoc.status = req.body.status || assoc.status;
     assoc.foto_url = resolveFotoUrl(req.file, req.body.foto_url || assoc.foto_url);
+    assoc.exibir_no_site = req.body.exibir_no_site === 'on';
 
     // Atualiza validade da carteirinha também
     const cart = carteirinhas.find(c => c.associado_id === id);
@@ -806,7 +835,7 @@ app.post('/admin/associados/:id/editar', upload.single('foto'), async (req: Requ
     }
 
     await saveAssociado(assoc);
-    await persistPortalData();
+    await persistPortalData(req);
     addFlash(req, `Dados de ${assoc.nome} atualizados com sucesso!`, 'success');
   } else {
     addFlash(req, 'Associado não encontrado.', 'danger');
@@ -829,7 +858,7 @@ app.post('/admin/associados/:id/status', async (req: Request, res: Response) => 
 
     const statusType = assoc.status === 'Ativo' ? 'success' : assoc.status === 'Pendente' ? 'warning' : 'danger';
     await saveAssociado(assoc);
-    await persistPortalData();
+    await persistPortalData(req);
     addFlash(req, `Status de ${assoc.nome} alterado para ${assoc.status}!`, statusType);
   }
 
@@ -847,7 +876,7 @@ app.post('/admin/associados/:id/excluir', async (req: Request, res: Response) =>
     const nome = associados[index].nome;
     associados.splice(index, 1);
     await deleteAssociado(id);
-    await persistPortalData();
+    await persistPortalData(req);
     addFlash(req, `Associado ${nome} removido do quadro.`, 'warning');
   }
 
@@ -910,7 +939,7 @@ app.post('/admin/mensalidades/novo', async (req: Request, res: Response) => {
     data_pagamento: status === 'Pago' ? new Date().toISOString().split('T')[0] : undefined,
     observacoes: observacoes ? String(observacoes) : undefined,
   });
-  await persistPortalData();
+  await persistPortalData(req);
 
   addFlash(req, 'Lançamento de mensalidade registrado com sucesso!', 'success');
   res.redirect('/admin/mensalidades');
@@ -931,7 +960,7 @@ app.post('/admin/mensalidades/:id/status', async (req: Request, res: Response) =
       m.data_pagamento = undefined;
     }
     const statusType = m.status === 'Pago' ? 'success' : m.status === 'Pendente' ? 'warning' : 'danger';
-    await persistPortalData();
+    await persistPortalData(req);
     addFlash(req, `Status da mensalidade atualizado para ${m.status}!`, statusType);
   }
 
@@ -948,7 +977,7 @@ app.post('/admin/mensalidades/:id/excluir', async (req: Request, res: Response) 
   if (index !== -1) {
     const valor = mensalidades[index].valor;
     mensalidades.splice(index, 1);
-    await persistPortalData();
+    await persistPortalData(req);
     addFlash(req, `Mensalidade de R$ ${Number(valor).toFixed(2).replace('.', ',')} removida com sucesso.`, 'warning');
   }
 
@@ -964,7 +993,7 @@ app.delete('/admin/mensalidades/:id/excluir', async (req: Request, res: Response
   if (index !== -1) {
     const valor = mensalidades[index].valor;
     mensalidades.splice(index, 1);
-    await persistPortalData();
+    await persistPortalData(req);
     addFlash(req, `Mensalidade de R$ ${Number(valor).toFixed(2).replace('.', ',')} removida com sucesso.`, 'warning');
   }
 
@@ -998,7 +1027,7 @@ app.post('/admin/carteirinhas/:id/toggle', async (req: Request, res: Response) =
 
   if (cart) {
     cart.ativa = !cart.ativa;
-    await persistPortalData();
+    await persistPortalData(req);
     addFlash(req, `Carteirinha ${cart.codigo_autenticacao} ${cart.ativa ? 'ativada' : 'suspensa'} com sucesso!`, 'info');
   }
 
@@ -1015,7 +1044,7 @@ app.post('/admin/carteirinhas/:id/excluir', async (req: Request, res: Response) 
   if (index !== -1) {
     const codigo = carteirinhas[index].codigo_autenticacao;
     carteirinhas.splice(index, 1);
-    await persistPortalData();
+    await persistPortalData(req);
     addFlash(req, `Carteirinha ${codigo} removida com sucesso.`, 'warning');
   }
 
@@ -1041,7 +1070,7 @@ app.post('/admin/carteirinhas/:id/renovar', async (req: Request, res: Response) 
       assoc.status = 'Ativo';
     }
 
-    await persistPortalData();
+    await persistPortalData(req);
     addFlash(req, `Validade da carteirinha renovada com sucesso até 31/12/${novoAno}!`, 'success');
   }
 
@@ -1112,6 +1141,9 @@ app.get('/admin/conteudo', async (req: Request, res: Response) => {
     momentosAssga,
     noticias,
     parceirosApoiadores,
+    membrosDiretoria,
+    modalidades,
+    capitulosEstatuto,
   });
 });
 
@@ -1134,7 +1166,7 @@ app.post('/admin/conteudo/parceiro/novo', async (req: Request, res: Response) =>
     imagem,
     ordem: parceirosApoiadores.length + 1,
   });
-  await persistPortalData();
+  await persistPortalData(req);
 
   addFlash(req, 'Parceiro/apoiador cadastrado com sucesso!', 'success');
   res.redirect('/admin/conteudo');
@@ -1149,7 +1181,7 @@ app.post('/admin/conteudo/parceiro/:id/excluir', async (req: Request, res: Respo
   if (index !== -1) {
     const nome = parceirosApoiadores[index].nome;
     parceirosApoiadores.splice(index, 1);
-    await persistPortalData();
+    await persistPortalData(req);
     addFlash(req, `Parceiro/apoiador "${nome}" removido.`, 'warning');
   }
 
@@ -1169,7 +1201,7 @@ app.post('/admin/conteudo/momento/novo', async (req: Request, res: Response) => 
     badge: String(badge || 'Comunidade & Liderança').trim(),
     ordem: momentosAssga.length + 1,
   });
-  await persistPortalData();
+  await persistPortalData(req);
 
   addFlash(req, 'Novo momento da ASSGA adicionado ao portal!', 'success');
   res.redirect('/admin/conteudo');
@@ -1184,7 +1216,7 @@ app.post('/admin/conteudo/momento/:id/excluir', async (req: Request, res: Respon
   if (index !== -1) {
     const titulo = momentosAssga[index].titulo;
     momentosAssga.splice(index, 1);
-    await persistPortalData();
+    await persistPortalData(req);
     addFlash(req, `Momento "${titulo}" removido do portal.`, 'warning');
   }
 
@@ -1206,7 +1238,7 @@ app.post('/admin/conteudo/noticia/novo', async (req: Request, res: Response) => 
   };
   noticias.unshift(novaNoticia);
   await saveNoticia(novaNoticia);
-  await persistPortalData();
+  await persistPortalData(req);
 
   addFlash(req, 'Notícia em destaque publicada com sucesso!', 'success');
   res.redirect('/admin/conteudo');
@@ -1222,16 +1254,170 @@ app.post('/admin/conteudo/noticia/:id/excluir', async (req: Request, res: Respon
     const titulo = noticias[index].titulo;
     noticias.splice(index, 1);
     await deleteNoticia(id);
-    await persistPortalData();
+    await persistPortalData(req);
     addFlash(req, `Notícia "${titulo}" removida do destaque.`, 'warning');
   }
 
   res.redirect('/admin/conteudo');
 });
 
-// 7. Lista de Eventos
-app.get('/admin/eventos', (req: Request, res: Response) => {
+app.post('/admin/conteudo/diretoria/novo', async (req: Request, res: Response) => {
   if (!requireAdmin(req, res)) return;
+
+  const nome = String(req.body.nome || '').trim();
+  const cargo = String(req.body.cargo || '').trim();
+  if (!nome || !cargo) {
+    addFlash(req, 'Informe o nome e o cargo do membro da diretoria.', 'warning');
+    return res.redirect('/admin/conteudo');
+  }
+
+  membrosDiretoria.unshift({
+    id: Date.now(),
+    ordem: membrosDiretoria.length + 1,
+    cargo,
+    nome,
+    gestao: String(req.body.gestao || '').trim(),
+    email: String(req.body.email || '').trim(),
+    telefone: String(req.body.telefone || '').trim(),
+    bio: String(req.body.bio || '').trim(),
+    foto_url: String(req.body.foto_url || '/imagens/avatar-padrao.jpg').trim(),
+  });
+  await persistPortalData(req);
+  addFlash(req, 'Membro da diretoria cadastrado e publicado no site.', 'success');
+  res.redirect('/admin/conteudo');
+});
+
+app.post('/admin/conteudo/diretoria/:id/excluir', async (req: Request, res: Response) => {
+  if (!requireAdmin(req, res)) return;
+  const id = Number(req.params.id);
+  const index = membrosDiretoria.findIndex(membro => membro.id === id);
+  if (index !== -1) {
+    membrosDiretoria.splice(index, 1);
+    await persistPortalData(req);
+    addFlash(req, 'Membro removido da diretoria e do site.', 'warning');
+  }
+  res.redirect('/admin/conteudo');
+});
+
+app.post('/admin/conteudo/modalidade/novo', async (req: Request, res: Response) => {
+  if (!requireAdmin(req, res)) return;
+
+  const nome = String(req.body.nome || '').trim();
+  const descricao = String(req.body.descricao || '').trim();
+  if (!nome || !descricao) {
+    addFlash(req, 'Informe o nome e a descrição da modalidade.', 'warning');
+    return res.redirect('/admin/conteudo');
+  }
+
+  modalidades.unshift({
+    id: Date.now(),
+    nome,
+    categoria: String(req.body.categoria || 'Esportiva').trim(),
+    icone: String(req.body.icone || 'fa-trophy').trim(),
+    dias_treino: String(req.body.dias_treino || '').trim(),
+    local_treino: String(req.body.local_treino || '').trim(),
+    responsavel: String(req.body.responsavel || '').trim(),
+    descricao,
+    ativa: req.body.ativa === 'on',
+  });
+  await persistPortalData(req);
+  addFlash(req, 'Modalidade cadastrada e publicada no site.', 'success');
+  res.redirect('/admin/conteudo');
+});
+
+app.post('/admin/conteudo/modalidade/:id/excluir', async (req: Request, res: Response) => {
+  if (!requireAdmin(req, res)) return;
+  const id = Number(req.params.id);
+  const index = modalidades.findIndex(modalidade => modalidade.id === id);
+  if (index !== -1) {
+    modalidades.splice(index, 1);
+    await persistPortalData(req);
+    addFlash(req, 'Modalidade removida do site.', 'warning');
+  }
+  res.redirect('/admin/conteudo');
+});
+
+app.post('/admin/conteudo/estatuto/capitulo/novo', async (req: Request, res: Response) => {
+  if (!requireAdmin(req, res)) return;
+
+  const titulo = String(req.body.titulo || '').trim();
+  const texto = String(req.body.texto || '').trim();
+  if (!titulo || !texto) {
+    addFlash(req, 'Informe o título do capítulo e o texto do primeiro artigo.', 'warning');
+    return res.redirect('/admin/conteudo');
+  }
+
+  const id = Date.now();
+  capitulosEstatuto.unshift({
+    id,
+    numero: Number(req.body.numero) || capitulosEstatuto.length + 1,
+    titulo,
+    ordem: capitulosEstatuto.length + 1,
+    artigos: [{
+      id: id + 1,
+      capitulo_id: id,
+      numero: Number(req.body.artigo_numero) || 1,
+      texto,
+      paragrafo_unico: String(req.body.paragrafo_unico || '').trim() || undefined,
+    }],
+  });
+  await persistPortalData(req);
+  addFlash(req, 'Capítulo e artigo cadastrados e publicados no estatuto.', 'success');
+  res.redirect('/admin/conteudo');
+});
+
+app.post('/admin/conteudo/estatuto/:id/artigo/novo', async (req: Request, res: Response) => {
+  if (!requireAdmin(req, res)) return;
+
+  const capitulo = capitulosEstatuto.find(item => item.id === Number(req.params.id));
+  const texto = String(req.body.texto || '').trim();
+  if (!capitulo || !texto) {
+    addFlash(req, 'Selecione um capítulo e informe o texto do artigo.', 'warning');
+    return res.redirect('/admin/conteudo');
+  }
+
+  capitulo.artigos.unshift({
+    id: Date.now(),
+    capitulo_id: capitulo.id,
+    numero: Number(req.body.numero) || capitulo.artigos.length + 1,
+    texto,
+    paragrafo_unico: String(req.body.paragrafo_unico || '').trim() || undefined,
+  });
+  await persistPortalData(req);
+  addFlash(req, `Artigo adicionado ao ${capitulo.titulo}.`, 'success');
+  res.redirect('/admin/conteudo');
+});
+
+app.post('/admin/conteudo/estatuto/:id/excluir', async (req: Request, res: Response) => {
+  if (!requireAdmin(req, res)) return;
+  const id = Number(req.params.id);
+  const index = capitulosEstatuto.findIndex(capitulo => capitulo.id === id);
+  if (index !== -1) {
+    capitulosEstatuto.splice(index, 1);
+    await persistPortalData(req);
+    addFlash(req, 'Capítulo removido do estatuto público.', 'warning');
+  }
+  res.redirect('/admin/conteudo');
+});
+
+app.post('/admin/conteudo/estatuto/:id/artigo/:artigoId/excluir', async (req: Request, res: Response) => {
+  if (!requireAdmin(req, res)) return;
+  const capitulo = capitulosEstatuto.find(item => item.id === Number(req.params.id));
+  if (capitulo) {
+    const artigoIndex = capitulo.artigos.findIndex(artigo => artigo.id === Number(req.params.artigoId));
+    if (artigoIndex !== -1) {
+      capitulo.artigos.splice(artigoIndex, 1);
+      await persistPortalData(req);
+      addFlash(req, 'Artigo removido do estatuto público.', 'warning');
+    }
+  }
+  res.redirect('/admin/conteudo');
+});
+
+// 7. Lista de Eventos
+app.get('/admin/eventos', async (req: Request, res: Response) => {
+  if (!requireAdmin(req, res)) return;
+  await refreshPostgresData();
 
   res.render('admin/eventos', {
     title: 'Gestão de Eventos - Gestão ASSGA',
@@ -1242,6 +1428,7 @@ app.get('/admin/eventos', (req: Request, res: Response) => {
     totalMensalidades: mensalidades.length,
     totalCarteirinhas: carteirinhas.length,
     totalEventos: eventos.length,
+    eventos,
   });
 });
 
@@ -1263,7 +1450,7 @@ app.post('/admin/eventos/novo', async (req: Request, res: Response) => {
     destaque: true,
     ativo: true,
   });
-  await persistPortalData();
+  await persistPortalData(req);
 
   addFlash(req, 'Novo evento cadastrado com sucesso no portal!', 'success');
   res.redirect('/admin/eventos');
@@ -1279,7 +1466,7 @@ app.post('/admin/eventos/:id/excluir', async (req: Request, res: Response) => {
   if (index !== -1) {
     const tit = eventos[index].titulo;
     eventos.splice(index, 1);
-    await persistPortalData();
+    await persistPortalData(req);
     addFlash(req, `Evento "${tit}" excluído com sucesso.`, 'warning');
   }
 
@@ -1350,7 +1537,14 @@ app.post('/api/data', async (req: Request, res: Response) => {
     return res.status(400).json({ error: 'Parâmetro collection é obrigatório.' });
   }
   memoryDataStore.set(collection, req.body);
-  await persistPortalData();
+  const persisted = await persistPortalData(req);
+  if (!persisted) {
+    return res.status(202).json({
+      status: 'temporary',
+      collection,
+      warning: 'Registro guardado temporariamente; pode desaparecer e ainda não foi sincronizado com o banco.',
+    });
+  }
   res.json({ status: 'ok', collection });
 });
 
@@ -1373,7 +1567,7 @@ app.post('/contato', async (req: Request, res: Response) => {
     mensagem,
     criado_em: new Date().toISOString(),
   });
-  await persistPortalData();
+  await persistPortalData(req);
 
   addFlash(req, 'Mensagem enviada com sucesso. Nossa equipe entrará em contato em breve.', 'success');
   res.redirect('/');
@@ -1400,7 +1594,7 @@ app.post('/voluntario', async (req: Request, res: Response) => {
     mensagem,
     criado_em: new Date().toISOString(),
   });
-  await persistPortalData();
+  await persistPortalData(req);
 
   addFlash(req, 'Sua vontade de ajudar foi registrada com sucesso. Em breve a ASSGA entrará em contato.', 'success');
   res.redirect('/');
@@ -1415,7 +1609,7 @@ app.post('/admin/contatos/:id/excluir', async (req: Request, res: Response) => {
   if (index !== -1) {
     const nome = contatos[index].nome;
     contatos.splice(index, 1);
-    await persistPortalData();
+    await persistPortalData(req);
     addFlash(req, `Mensagem de contato de ${nome} removida com sucesso.`, 'warning');
   }
 
@@ -1431,7 +1625,7 @@ app.post('/admin/voluntarios/:id/excluir', async (req: Request, res: Response) =
   if (index !== -1) {
     const nome = voluntarios[index].nome;
     voluntarios.splice(index, 1);
-    await persistPortalData();
+    await persistPortalData(req);
     addFlash(req, `Registro de voluntário de ${nome} removido com sucesso.`, 'warning');
   }
 

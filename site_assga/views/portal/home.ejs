@@ -86,6 +86,22 @@
         </div>
     </div>
 
+    <% if (associados && associados.length > 0) { %>
+    <section class="mb-5" aria-labelledby="associadosDestaqueTitulo">
+        <h3 id="associadosDestaqueTitulo" class="fw-bold text-primary mb-3">Associados em Destaque</h3>
+        <div class="row g-3">
+            <% associados.forEach(function(associado) { %>
+            <div class="col-6 col-md-3">
+                <div class="card h-100 border-0 shadow-sm rounded-3 p-3 text-center">
+                    <img src="<%= associado.foto_url || '/imagens/avatar-padrao.jpg' %>" alt="Foto de <%= associado.nome %>" class="rounded-circle mx-auto mb-2" style="width: 88px; height: 88px; object-fit: cover;">
+                    <h6 class="fw-bold text-dark mb-0"><%= associado.nome %></h6>
+                </div>
+            </div>
+            <% }); %>
+        </div>
+    </section>
+    <% } %>
+
     <!-- Slider de Fotos da ASSGA -->
     <div class="mb-5">
         <div class="d-flex justify-content-between align-items-center mb-4">

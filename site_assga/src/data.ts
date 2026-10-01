@@ -16,6 +16,7 @@ export interface Associado {
   estado: string;
   identidade_surda: string;
   foto_url: string;
+  exibir_no_site?: boolean;
 }
 
 export interface Carteirinha {

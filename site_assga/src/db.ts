@@ -88,6 +88,7 @@ function toAssociado(row: Record<string, unknown>): Associado {
     estado: String(row.estado),
     identidade_surda: String(row.identidade_surda),
     foto_url: String(row.foto_url),
+    exibir_no_site: Boolean(row.exibir_no_site),
   };
 }
 
@@ -124,9 +125,11 @@ export async function initializePostgresData(): Promise<void> {
       cidade TEXT NOT NULL DEFAULT '',
       estado TEXT NOT NULL DEFAULT 'RN',
       identidade_surda TEXT NOT NULL DEFAULT '',
-      foto_url TEXT NOT NULL DEFAULT ''
+      foto_url TEXT NOT NULL DEFAULT '',
+      exibir_no_site BOOLEAN NOT NULL DEFAULT FALSE
     )
     `);
+    await pool.query('ALTER TABLE associados ADD COLUMN IF NOT EXISTS exibir_no_site BOOLEAN NOT NULL DEFAULT FALSE');
     await pool.query(`
     CREATE TABLE IF NOT EXISTS noticias (
       id BIGINT PRIMARY KEY,
@@ -235,15 +238,16 @@ export async function clearPostgresData(): Promise<void> {
   await savePortalState();
 }
 
-export async function saveAssociado(associado: Associado): Promise<void> {
-  const database = writablePool();
-  if (!database) return;
-  await database.query(
+export async function saveAssociado(associado: Associado): Promise<boolean> {
+  if (!pool) return !process.env.VERCEL && !process.env.NETLIFY;
+  if (!postgresHealthy) return false;
+  try {
+    await pool.query(
     `INSERT INTO associados (
       id, matricula, nome, email, telefone, cpf, rg, data_nascimento,
       tipo_sanguineo, data_filiacao, categoria, status, validade_carteirinha,
-      cidade, estado, identidade_surda, foto_url
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+      cidade, estado, identidade_surda, foto_url, exibir_no_site
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
     ON CONFLICT (id) DO UPDATE SET
       matricula = EXCLUDED.matricula, nome = EXCLUDED.nome, email = EXCLUDED.email,
       telefone = EXCLUDED.telefone, cpf = EXCLUDED.cpf, rg = EXCLUDED.rg,
@@ -251,37 +255,62 @@ export async function saveAssociado(associado: Associado): Promise<void> {
       data_filiacao = EXCLUDED.data_filiacao, categoria = EXCLUDED.categoria,
       status = EXCLUDED.status, validade_carteirinha = EXCLUDED.validade_carteirinha,
       cidade = EXCLUDED.cidade, estado = EXCLUDED.estado,
-      identidade_surda = EXCLUDED.identidade_surda, foto_url = EXCLUDED.foto_url`,
+      identidade_surda = EXCLUDED.identidade_surda, foto_url = EXCLUDED.foto_url,
+      exibir_no_site = EXCLUDED.exibir_no_site`,
     [
       associado.id, associado.matricula, associado.nome, associado.email, associado.telefone,
       associado.cpf, associado.rg, associado.data_nascimento, associado.tipo_sanguineo,
       associado.data_filiacao, associado.categoria, associado.status, associado.validade_carteirinha,
       associado.cidade, associado.estado, associado.identidade_surda, associado.foto_url,
+      Boolean(associado.exibir_no_site),
     ],
-  );
+    );
+    return true;
+  } catch (error) {
+    reportDatabaseFailure(error);
+    return false;
+  }
 }
 
-export async function deleteAssociado(id: number): Promise<void> {
-  const database = writablePool();
-  if (!database) return;
-  await database.query('DELETE FROM associados WHERE id = $1', [id]);
+export async function deleteAssociado(id: number): Promise<boolean> {
+  if (!pool) return !process.env.VERCEL && !process.env.NETLIFY;
+  if (!postgresHealthy) return false;
+  try {
+    await pool.query('DELETE FROM associados WHERE id = $1', [id]);
+    return true;
+  } catch (error) {
+    reportDatabaseFailure(error);
+    return false;
+  }
 }
 
-export async function saveNoticia(noticia: Noticia): Promise<void> {
-  const database = writablePool();
-  if (!database) return;
-  await database.query(
+export async function saveNoticia(noticia: Noticia): Promise<boolean> {
+  if (!pool) return !process.env.VERCEL && !process.env.NETLIFY;
+  if (!postgresHealthy) return false;
+  try {
+    await pool.query(
     `INSERT INTO noticias (id, titulo, conteudo, imagem, data, destaque)
      VALUES ($1, $2, $3, $4, $5, $6)
      ON CONFLICT (id) DO UPDATE SET
        titulo = EXCLUDED.titulo, conteudo = EXCLUDED.conteudo,
        imagem = EXCLUDED.imagem, data = EXCLUDED.data, destaque = EXCLUDED.destaque`,
     [noticia.id, noticia.titulo, noticia.conteudo, noticia.imagem, noticia.data, noticia.destaque],
-  );
+    );
+    return true;
+  } catch (error) {
+    reportDatabaseFailure(error);
+    return false;
+  }
 }
 
-export async function deleteNoticia(id: number): Promise<void> {
-  const database = writablePool();
-  if (!database) return;
-  await database.query('DELETE FROM noticias WHERE id = $1', [id]);
+export async function deleteNoticia(id: number): Promise<boolean> {
+  if (!pool) return !process.env.VERCEL && !process.env.NETLIFY;
+  if (!postgresHealthy) return false;
+  try {
+    await pool.query('DELETE FROM noticias WHERE id = $1', [id]);
+    return true;
+  } catch (error) {
+    reportDatabaseFailure(error);
+    return false;
+  }
 }

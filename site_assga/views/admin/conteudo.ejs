@@ -1,4 +1,7 @@
 <%- include('../layout/header') %>
+<% const listaDiretoria = typeof membrosDiretoria !== 'undefined' && Array.isArray(membrosDiretoria) ? membrosDiretoria : []; %>
+<% const listaModalidades = typeof modalidades !== 'undefined' && Array.isArray(modalidades) ? modalidades : []; %>
+<% const listaCapitulos = typeof capitulosEstatuto !== 'undefined' && Array.isArray(capitulosEstatuto) ? capitulosEstatuto : []; %>
 
 <div class="container py-2">
     <%- include('nav_tabs') %>
@@ -145,6 +148,99 @@
                 <p class="mb-0">Nenhum parceiro ou apoiador cadastrado.</p>
             </div>
         <% } %>
+    </div>
+
+    <div class="card border-0 shadow-sm rounded-4 p-4 bg-white mt-4">
+        <h5 class="fw-bold text-primary mb-3"><i class="fa-solid fa-people-group me-2"></i>Diretoria pública</h5>
+        <form method="post" action="/admin/conteudo/diretoria/novo" class="row g-2 mb-4">
+            <div class="col-md-3"><input name="nome" class="form-control" placeholder="Nome" required></div>
+            <div class="col-md-3"><input name="cargo" class="form-control" placeholder="Cargo" required></div>
+            <div class="col-md-2"><input name="gestao" class="form-control" placeholder="Gestão"></div>
+            <div class="col-md-2"><input name="email" type="email" class="form-control" placeholder="E-mail"></div>
+            <div class="col-md-2"><input name="telefone" class="form-control" placeholder="Telefone"></div>
+            <div class="col-md-8"><input name="foto_url" type="url" class="form-control" placeholder="URL da foto"></div>
+            <div class="col-md-4"><input name="bio" class="form-control" placeholder="Biografia"></div>
+            <div class="col-12"><button class="btn btn-primary" type="submit"><i class="fa-solid fa-plus me-1"></i>Cadastrar membro</button></div>
+        </form>
+        <% if (listaDiretoria.length > 0) { %>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light"><tr><th>Nome</th><th>Cargo</th><th>Gestão</th><th>E-mail</th><th></th></tr></thead>
+                <tbody>
+                    <% listaDiretoria.forEach(function(membro) { %>
+                    <tr>
+                        <td><%= membro.nome %></td><td><%= membro.cargo %></td><td><%= membro.gestao %></td><td><%= membro.email %></td>
+                        <td class="text-end"><form method="post" action="/admin/conteudo/diretoria/<%= membro.id %>/excluir" onsubmit="return confirm('Remover este membro da diretoria?');"><button class="btn btn-sm btn-outline-danger" title="Remover"><i class="fa-solid fa-trash"></i></button></form></td>
+                    </tr>
+                    <% }); %>
+                </tbody>
+            </table>
+        </div>
+        <% } else { %><p class="small text-muted mb-0">Nenhum membro da diretoria cadastrado.</p><% } %>
+    </div>
+
+    <div class="card border-0 shadow-sm rounded-4 p-4 bg-white mt-4">
+        <h5 class="fw-bold text-primary mb-3"><i class="fa-solid fa-trophy me-2"></i>Modalidades esportivas</h5>
+        <form method="post" action="/admin/conteudo/modalidade/novo" class="row g-2 mb-4">
+            <div class="col-md-3"><input name="nome" class="form-control" placeholder="Modalidade" required></div>
+            <div class="col-md-2"><input name="categoria" class="form-control" placeholder="Categoria"></div>
+            <div class="col-md-2"><input name="icone" class="form-control" placeholder="Ícone (ex.: fa-futbol)"></div>
+            <div class="col-md-2"><input name="dias_treino" class="form-control" placeholder="Dias/horários"></div>
+            <div class="col-md-3"><input name="local_treino" class="form-control" placeholder="Local"></div>
+            <div class="col-md-3"><input name="responsavel" class="form-control" placeholder="Responsável"></div>
+            <div class="col-md-7"><input name="descricao" class="form-control" placeholder="Descrição" required></div>
+            <div class="col-md-2 d-flex align-items-center"><div class="form-check"><input name="ativa" type="checkbox" class="form-check-input" id="modalidadeAtiva" checked><label class="form-check-label" for="modalidadeAtiva">Ativa</label></div></div>
+            <div class="col-12"><button class="btn btn-primary" type="submit"><i class="fa-solid fa-plus me-1"></i>Cadastrar modalidade</button></div>
+        </form>
+        <% if (listaModalidades.length > 0) { %>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light"><tr><th>Modalidade</th><th>Categoria</th><th>Treinos</th><th>Local</th><th>Status</th><th></th></tr></thead>
+                <tbody>
+                    <% listaModalidades.forEach(function(modalidade) { %>
+                    <tr>
+                        <td><%= modalidade.nome %></td><td><%= modalidade.categoria %></td><td><%= modalidade.dias_treino %></td><td><%= modalidade.local_treino %></td><td><%= modalidade.ativa ? 'Ativa' : 'Inativa' %></td>
+                        <td class="text-end"><form method="post" action="/admin/conteudo/modalidade/<%= modalidade.id %>/excluir" onsubmit="return confirm('Remover esta modalidade?');"><button class="btn btn-sm btn-outline-danger" title="Remover"><i class="fa-solid fa-trash"></i></button></form></td>
+                    </tr>
+                    <% }); %>
+                </tbody>
+            </table>
+        </div>
+        <% } else { %><p class="small text-muted mb-0">Nenhuma modalidade cadastrada.</p><% } %>
+    </div>
+
+    <div class="card border-0 shadow-sm rounded-4 p-4 bg-white mt-4">
+        <h5 class="fw-bold text-primary mb-3"><i class="fa-solid fa-scale-balanced me-2"></i>Estatuto social</h5>
+        <form method="post" action="/admin/conteudo/estatuto/capitulo/novo" class="row g-2 mb-4">
+            <div class="col-md-2"><input name="numero" type="number" min="1" class="form-control" placeholder="Nº cap. "></div>
+            <div class="col-md-4"><input name="titulo" class="form-control" placeholder="Título do capítulo" required></div>
+            <div class="col-md-2"><input name="artigo_numero" type="number" min="1" class="form-control" placeholder="Nº artigo"></div>
+            <div class="col-md-4"><input name="texto" class="form-control" placeholder="Texto do primeiro artigo" required></div>
+            <div class="col-md-10"><input name="paragrafo_unico" class="form-control" placeholder="Parágrafo único (opcional)"></div>
+            <div class="col-md-2"><button class="btn btn-primary w-100" type="submit">Cadastrar</button></div>
+        </form>
+        <% if (listaCapitulos.length > 0) { %>
+            <% listaCapitulos.forEach(function(capitulo) { %>
+            <div class="border rounded-3 p-3 mb-3">
+                <div class="d-flex justify-content-between align-items-center gap-2 mb-3">
+                    <h6 class="fw-bold mb-0">Capítulo <%= capitulo.numero %>: <%= capitulo.titulo %></h6>
+                    <form method="post" action="/admin/conteudo/estatuto/<%= capitulo.id %>/excluir" onsubmit="return confirm('Remover este capítulo e seus artigos?');"><button class="btn btn-sm btn-outline-danger" title="Remover capítulo"><i class="fa-solid fa-trash"></i></button></form>
+                </div>
+                <% capitulo.artigos.forEach(function(artigo) { %>
+                <div class="d-flex justify-content-between align-items-start gap-2 border-top py-2">
+                    <p class="small mb-0"><strong>Art. <%= artigo.numero %>º</strong> <%= artigo.texto %><% if (artigo.paragrafo_unico) { %><br><span class="text-muted">Parágrafo único: <%= artigo.paragrafo_unico %></span><% } %></p>
+                    <form method="post" action="/admin/conteudo/estatuto/<%= capitulo.id %>/artigo/<%= artigo.id %>/excluir" onsubmit="return confirm('Remover este artigo?');"><button class="btn btn-sm btn-outline-danger" title="Remover artigo"><i class="fa-solid fa-trash"></i></button></form>
+                </div>
+                <% }); %>
+                <form method="post" action="/admin/conteudo/estatuto/<%= capitulo.id %>/artigo/novo" class="row g-2 mt-2">
+                    <div class="col-md-2"><input name="numero" type="number" min="1" class="form-control" placeholder="Nº artigo"></div>
+                    <div class="col-md-7"><input name="texto" class="form-control" placeholder="Texto do artigo" required></div>
+                    <div class="col-md-2"><input name="paragrafo_unico" class="form-control" placeholder="Parágrafo único"></div>
+                    <div class="col-md-1"><button class="btn btn-outline-primary w-100" type="submit" title="Adicionar artigo"><i class="fa-solid fa-plus"></i></button></div>
+                </form>
+            </div>
+            <% }); %>
+        <% } else { %><p class="small text-muted mb-0">Nenhum capítulo do estatuto cadastrado.</p><% } %>
     </div>
 </div>
 

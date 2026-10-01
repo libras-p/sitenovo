@@ -1,4 +1,5 @@
 <%- include('../layout/header') %>
+<% const eventosLista = typeof eventos !== 'undefined' && Array.isArray(eventos) ? eventos : []; %>
 
 <div class="container py-2">
     <%- include('nav_tabs') %>
@@ -16,6 +17,65 @@
                 </button>
             </div>
         </div>
+    </div>
+
+    <div class="card border-0 shadow-sm rounded-4 p-4 mb-4 bg-white">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+            <div>
+                <h5 class="fw-bold text-primary mb-1">Eventos cadastrados</h5>
+                <p class="small text-muted mb-0"><%= eventosLista.length %> evento(s) no portal</p>
+            </div>
+        </div>
+
+        <% if (eventosLista.length > 0) { %>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Evento</th>
+                        <th>Tipo</th>
+                        <th>Data</th>
+                        <th>Local</th>
+                        <th>LIBRAS</th>
+                        <th class="text-end">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% eventosLista.forEach(function(evento) { %>
+                    <tr>
+                        <td>
+                            <div class="fw-bold"><%= evento.titulo %></div>
+                            <div class="small text-muted"><%= evento.descricao %></div>
+                        </td>
+                        <td><%= evento.tipo %></td>
+                        <td><%= new Date(evento.data_inicio).toLocaleString('pt-BR') %></td>
+                        <td><%= evento.local %></td>
+                        <td>
+                            <% if (evento.libras_disponivel) { %>
+                            <span class="badge bg-success">Disponível</span>
+                            <% } else { %>
+                            <span class="badge bg-secondary">Não informado</span>
+                            <% } %>
+                        </td>
+                        <td class="text-end">
+                            <form method="post" action="/admin/eventos/<%= evento.id %>/excluir" onsubmit="return confirm('Excluir este evento?');">
+                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Excluir evento" aria-label="Excluir evento">
+                                    <i class="fa-solid fa-trash"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    <% }); %>
+                </tbody>
+            </table>
+        </div>
+        <% } else { %>
+        <div class="border rounded-4 p-4 text-center bg-light" style="border-style: dashed;">
+            <i class="fa-solid fa-calendar-xmark display-6 mb-2 text-muted"></i>
+            <h6 class="fw-bold mb-1">Nenhum evento cadastrado</h6>
+            <p class="small text-muted mb-0">Os eventos publicados aparecerão nesta lista.</p>
+        </div>
+        <% } %>
     </div>
 
 </div>

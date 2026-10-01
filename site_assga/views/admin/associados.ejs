@@ -85,6 +85,7 @@
                             <td>
                                 <span class="badge bg-primary-subtle text-primary border border-primary-subtle mb-1"><%= s.categoria %></span>
                                 <div class="small text-muted"><%= s.identidade_surda %></div>
+                                <div class="small <%= s.exibir_no_site ? 'text-success' : 'text-muted' %>"><%= s.exibir_no_site ? 'Perfil público autorizado' : 'Perfil privado' %></div>
                             </td>
                             <td>
                                 <div class="small"><i class="fa-solid fa-envelope text-muted me-1"></i><%= s.email %></div>
@@ -206,6 +207,13 @@
                                                     <input type="file" name="foto" class="form-control" accept="image/*">
                                                     <div class="form-text">Se selecionar uma imagem, ela substituirá a URL anterior.</div>
                                                 </div>
+                                                <div class="col-12">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="checkbox" name="exibir_no_site" id="exibirNoSite<%= s.id %>" <%= s.exibir_no_site ? 'checked' : '' %>>
+                                                        <label class="form-check-label small fw-bold" for="exibirNoSite<%= s.id %>">Autoriza exibir nome e foto na página pública</label>
+                                                    </div>
+                                                    <div class="form-text">CPF, telefone e mensalidades nunca são publicados.</div>
+                                                </div>
                                             </div>
                                         </div>
                                         <div class="modal-footer bg-light border-0 py-3">
@@ -313,6 +321,13 @@
                         <div class="col-md-12">
                             <label class="form-label small fw-bold">Ou enviar foto do associado</label>
                             <input type="file" name="foto" class="form-control" accept="image/*">
+                        </div>
+                        <div class="col-12">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="exibir_no_site" id="novoAssociadoSite">
+                                <label class="form-check-label small fw-bold" for="novoAssociadoSite">Associado autorizou exibir nome e foto na página pública</label>
+                            </div>
+                            <div class="form-text">CPF, telefone e mensalidades permanecem privados.</div>
                         </div>
                     </div>
                 </div>
