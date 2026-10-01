@@ -1,6 +1,7 @@
 import express, { Request, Response } from 'express';
 import path from 'path';
 import fs from 'fs';
+import { fileURLToPath } from 'node:url';
 import multer from 'multer';
 import cookieSession from 'cookie-session';
 import { GoogleGenAI } from '@google/genai';
@@ -34,13 +35,14 @@ import {
 
 const app = express();
 const PORT = 3000;
+const appRoot = path.dirname(fileURLToPath(import.meta.url));
 const isServerless = Boolean(process.env.VERCEL || process.env.NETLIFY);
 const dataStorePath = isServerless
   ? '/tmp/assga-data.json'
-  : path.join(process.cwd(), 'data', 'assga-data.json');
+  : path.join(appRoot, 'data', 'assga-data.json');
 const uploadDir = isServerless
   ? '/tmp/assga-uploads'
-  : path.join(process.cwd(), 'public', 'imagens', 'uploads');
+  : path.join(appRoot, 'public', 'imagens', 'uploads');
 
 function persistDataStore() {
   try {
@@ -185,10 +187,10 @@ app.use(
 
 // EJS View Engine
 app.set('view engine', 'ejs');
-app.set('views', path.join(process.cwd(), 'views'));
+app.set('views', path.join(appRoot, 'views'));
 
 // Static files
-const publicDir = path.join(process.cwd(), 'public');
+const publicDir = path.join(appRoot, 'public');
 app.use(express.static(publicDir));
 app.use('/static', express.static(publicDir));
 app.use('/static/imagens', express.static(path.join(publicDir, 'imagens')));

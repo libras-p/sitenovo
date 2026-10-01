@@ -12,3 +12,11 @@ O projeto já inclui `netlify.toml` e a Function `netlify/functions/server.ts` p
 Para manter associados e notícias no painel administrativo em produção, configure também `DATABASE_URL` com a URL de um PostgreSQL (Neon, Supabase, Vercel Postgres ou outro provedor compatível). Na primeira inicialização, as tabelas `associados` e `noticias` são criadas automaticamente e, se estiverem vazias, recebem os dados existentes em `data/assga-data.json`.
 
 Sem `DATABASE_URL`, o projeto continua usando o JSON local para desenvolvimento. Em Functions, o armazenamento local e os uploads em `/tmp` são temporários; por isso, fotos de associados ainda precisam de um storage permanente para produção.
+
+## Deploy na Vercel
+
+O projeto também inclui `vercel.json` e uma Function em `api/index.ts` para encaminhar as páginas do portal Express para a Vercel.
+
+1. Importe este repositório na Vercel e defina `site_assga` como diretório raiz se o repositório contiver a pasta pai.
+2. Mantenha o comando de build `npm run build` e configure `SESSION_SECRET` e, opcionalmente, `GEMINI_API_KEY` nas variáveis de ambiente.
+3. Configure `DATABASE_URL` com um PostgreSQL para persistir associados e notícias. O filesystem e uploads em `/tmp` são temporários nas Functions da Vercel.
