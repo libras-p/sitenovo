@@ -20,3 +20,12 @@ O projeto também inclui `vercel.json` e uma Function em `api/index.ts` para enc
 1. Importe este repositório na Vercel e defina `site_assga` como diretório raiz se o repositório contiver a pasta pai.
 2. Mantenha o comando de build `npm run build` e configure `SESSION_SECRET` e, opcionalmente, `GEMINI_API_KEY` nas variáveis de ambiente.
 3. Configure `DATABASE_URL` com um PostgreSQL para persistir os cadastros e dados do portal. O filesystem e uploads em `/tmp` são temporários nas Functions da Vercel.
+
+## Deploy no Railway
+
+O projeto já inclui `railway.json` para iniciar o servidor Express no ambiente do Railway.
+
+1. Conecte este repositório ao Railway e defina `site_assga` como diretório do serviço se o repositório tiver a pasta pai.
+2. Mantenha o comando de build padrão do Node/Nixpacks e configure as variáveis `SESSION_SECRET` e, opcionalmente, `GEMINI_API_KEY`.
+3. Reserve um banco PostgreSQL e configure `DATABASE_URL` para persistência dos cadastros e dados do portal.
+4. O app escuta a porta dinâmica do Railway via `PORT`; não é necessário um `PORT` fixo no código.

@@ -37,7 +37,7 @@ import {
 } from './src/db.js';
 
 const app = express();
-const PORT = 3000;
+const PORT = Number.parseInt(process.env.PORT || '', 10) || 3000;
 const appRoot = path.dirname(fileURLToPath(import.meta.url));
 const isServerless = Boolean(process.env.VERCEL || process.env.NETLIFY);
 const dataStorePath = isServerless
