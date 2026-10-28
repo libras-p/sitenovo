@@ -23,7 +23,7 @@ import {
   Associado,
   Mensalidade
 } from './src/data.js';
-import { ADMIN_PASSWORD, isValidAdminPassword } from './adminAuth.js';
+import { isValidAdminPassword, normalizeAdminPassword } from './adminAuth.js';
 import {
   databaseEnabled,
   deleteAssociado,
@@ -40,6 +40,14 @@ const app = express();
 const PORT = Number.parseInt(process.env.PORT || '', 10) || 3000;
 const appRoot = path.dirname(fileURLToPath(import.meta.url));
 const isServerless = Boolean(process.env.VERCEL || process.env.NETLIFY);
+const isProduction = process.env.NODE_ENV === 'production';
+const sessionSecret = process.env.SESSION_SECRET;
+if (isProduction && !sessionSecret) {
+  throw new Error('SESSION_SECRET é obrigatória em produção.');
+}
+if (isProduction && !normalizeAdminPassword(process.env.ADMIN_PASSWORD)) {
+  throw new Error('ADMIN_PASSWORD é obrigatória em produção.');
+}
 const dataStorePath = isServerless
   ? '/tmp/assga-data.json'
   : path.join(appRoot, 'data', 'assga-data.json');
@@ -207,11 +215,14 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Session handling
+if (isProduction) app.set('trust proxy', 1);
 app.use(
   cookieSession({
     name: 'assga_session',
-    keys: [process.env.SESSION_SECRET || 'assga-potiguar-secret-key-2026'],
+    keys: [sessionSecret || 'local-development-only-session-secret'],
     maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    secure: isProduction,
+    sameSite: 'lax',
   })
 );
 
@@ -1532,6 +1543,9 @@ app.get('/api/data', (req: Request, res: Response) => {
 });
 
 app.post('/api/data', async (req: Request, res: Response) => {
+  if (!req.session?.adminAuthenticated) {
+    return res.status(401).json({ error: 'Acesso restrito ao painel administrativo.' });
+  }
   const collection = String(req.query?.collection || '').trim().toLowerCase();
   if (!collection) {
     return res.status(400).json({ error: 'Parâmetro collection é obrigatório.' });

@@ -23,9 +23,6 @@ O projeto também inclui `vercel.json` e uma Function em `api/index.ts` para enc
 
 ## Deploy no Railway
 
-O projeto já inclui `railway.json` para iniciar o servidor Express no ambiente do Railway.
+O serviço pode usar o build Node padrão do Railway e inicia com `npm start`. Configure `NODE_ENV=production`, `SESSION_SECRET`, `ADMIN_PASSWORD` e `DATABASE_URL` no ambiente do serviço. `SESSION_SECRET` e `ADMIN_PASSWORD` não têm valores padrão em produção. `GEMINI_API_KEY` é opcional para o assistente.
 
-1. Conecte este repositório ao Railway e defina `site_assga` como diretório do serviço se o repositório tiver a pasta pai.
-2. Mantenha o comando de build padrão do Node/Nixpacks e configure as variáveis `SESSION_SECRET` e, opcionalmente, `GEMINI_API_KEY`.
-3. Reserve um banco PostgreSQL e configure `DATABASE_URL` para persistência dos cadastros e dados do portal.
-4. O app escuta a porta dinâmica do Railway via `PORT`; não é necessário um `PORT` fixo no código.
+Use um PostgreSQL para persistir os cadastros e dados do portal. O app escuta a porta dinâmica do Railway via `PORT`; não é necessário um `PORT` fixo no código.

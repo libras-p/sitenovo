@@ -1,9 +1,0 @@
-.vercel
-.env*
-node_modules/
-.vercel/
-__pycache__/
-*.pyc
-
-# Local Netlify folder
-.netlify
